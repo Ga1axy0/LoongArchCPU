@@ -1,0 +1,24 @@
+#-----------------------------------------------------------
+# Vivado v2024.1 (64-bit)
+# SW Build 5076996 on Wed May 22 18:37:14 MDT 2024
+# IP Build 5075265 on Wed May 22 21:45:21 MDT 2024
+# SharedData Build 5076995 on Wed May 22 18:29:18 MDT 2024
+# Start of session at: Wed Mar 12 10:52:04 2025
+# Process ID: 15936
+# Current directory: C:/Users/28646/Desktop/LoongArchCPU/cdp_ede_local/mycpu_env/gettrace
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent28040 C:\Users\28646\Desktop\LoongArchCPU\cdp_ede_local\mycpu_env\gettrace\gettrace.xpr
+# Log file: C:/Users/28646/Desktop/LoongArchCPU/cdp_ede_local/mycpu_env/gettrace/vivado.log
+# Journal file: C:/Users/28646/Desktop/LoongArchCPU/cdp_ede_local/mycpu_env/gettrace\vivado.jou
+# Running On        :Ga1axy
+# Platform          :Windows Server 2016 or Windows 10
+# Operating System  :22631
+# Processor Detail  :13th Gen Intel(R) Core(TM) i9-13980HX
+# CPU Frequency     :2419 MHz
+# CPU Physical cores:24
+# CPU Logical cores :32
+# Host memory       :33959 MB
+# Swap memory       :6442 MB
+# Total Virtual     :40402 MB
+# Available Virtual :16298 MB
+#-----------------------------------------------------------
+start_gui
