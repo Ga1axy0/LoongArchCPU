@@ -22,3 +22,22 @@
 # Available Virtual :16298 MB
 #-----------------------------------------------------------
 start_gui
+open_project C:/Users/28646/Desktop/LoongArchCPU/cdp_ede_local/mycpu_env/gettrace/gettrace.xpr
+upgrade_project -migrate_output_products
+update_compile_order -fileset sources_1
+launch_simulation
+source tb_top.tcl
+run all
+pwd
+cd ..
+cd soc_verify
+cd soc_dram
+cd run_vivado
+source create_project.tcl
+update_compile_order -fileset sources_1
+update_compile_order -fileset sources_1
+update_compile_order -fileset sim_1
+update_compile_order -fileset sources_1
+current_project gettrace
+close_sim
+close_project
