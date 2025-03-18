@@ -1,43 +1,36 @@
-module mycpu_top(
-    input  wire        clk,
-    input  wire        resetn,
-    // inst sram interface
-    output wire        inst_sram_en,
-    output wire [3:0]  inst_sram_we,
-    output wire [31:0] inst_sram_addr,
-    output wire [31:0] inst_sram_wdata,
-    input  wire [31:0] inst_sram_rdata,
-    // data sram interface
-    output wire        data_sram_en,
-    output wire [3:0]  data_sram_we,
-    output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata,
-    input  wire [31:0] data_sram_rdata,
-    // trace debug interface
-    output wire [31:0] debug_wb_pc,
-    output wire [ 3:0] debug_wb_rf_we,
-    output wire [ 4:0] debug_wb_rf_wnum,
-    output wire [31:0] debug_wb_rf_wdata
+module ID_Unit (
+    input  wire         clk,
+    input  wire         reset,
+    input  wire         IF_Valid,
+    output wire         ID_Unit_Ready,
+    output wire         ID_Valid,
+    output wire [150:0] ID_to_EX_Bus,
+
+    input  wire [63:0]  IF_to_ID_Bus,
+    output wire [32:0]  br_bus,
 );
-reg         reset;
-always @(posedge clk) reset <= ~resetn;
+
+reg [31:0] pc;
+reg [31:0] inst;
+
+always @(posedge clk) begin
+    if(IF_Valid && ID_Unit_Ready)begin
+        {pc, inst} <= IF_to_ID_Bus;
+    end 
+    
+end
 
 reg         valid;
 always @(posedge clk) begin
     if (reset) begin
         valid <= 1'b0;
-    end
-    else begin
+    end else begin
         valid <= 1'b1;
+        ID_Valid <= IF_Valid;
     end
 end
 
-wire [31:0] seq_pc;
-wire [31:0] nextpc;
-wire        br_taken;
-wire [31:0] br_target;
-wire [31:0] inst;
-reg  [31:0] pc;
+assign ID_Unit_Ready = 1'b1;
 
 wire [11:0] alu_op;
 wire        load_op;
@@ -108,29 +101,6 @@ wire        rf_we   ;
 wire [ 4:0] rf_waddr;
 wire [31:0] rf_wdata;
 
-wire [31:0] alu_src1   ;
-wire [31:0] alu_src2   ;
-wire [31:0] alu_result ;
-
-wire [31:0] mem_result;
-wire [31:0] final_result;
-
-assign seq_pc       = pc + 3'h4;
-assign nextpc       = br_taken ? br_target : seq_pc;
-
-always @(posedge clk) begin
-    if (reset) begin
-        pc <= 32'h1bfffffc;     //trick: to make nextpc be 0x1c000000 during reset 
-    end
-    else begin
-        pc <= nextpc;
-    end
-end
-
-assign inst_sram_we    = 1'b0;
-assign inst_sram_addr  = pc;
-assign inst_sram_wdata = 32'b0;
-assign inst            = inst_sram_rdata;
 
 assign op_31_26  = inst[31:26];
 assign op_25_22  = inst[25:22];
@@ -246,34 +216,28 @@ assign br_taken = (   inst_beq  &&  rj_eq_rd
                    || inst_bl
                    || inst_b
                   ) && valid;
+
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b) ? (pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
 
-assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
-assign alu_src2 = src2_is_imm ? imm : rkd_value;
+assign br_bus = {br_taken , br_target};
 
-alu u_alu(
-    .alu_op     (alu_op    ),
-    .alu_src1   (alu_src1  ),
-    .alu_src2   (alu_src2  ),
-    .alu_result (alu_result)
-    );
+assign ID_Valid = ~reset;
 
-assign data_sram_we    = mem_we && valid;
-assign data_sram_addr  = alu_result;
-assign data_sram_wdata = rkd_value;
+assign ID_to_EX_Bus = {
+                       alu_op,          //[150:138]
+                       pc,              //[137:106]
+                       imm,             //[105:74]
+                       rj_value,        //[73:42]
+                       rkd_value,       //[41:10]
+                       src1_is_pc,      //[9:9]
+                       src2_is_imm,     //[8:8]
+                       res_from_mem,    //[7:7]
+                       gr_we,           //[6:6]
+                       mem_we,          //[5:5]
+                       dest             //[4:0]
+                       };
 
-assign mem_result   = data_sram_rdata;
-assign final_result = res_from_mem ? mem_result : alu_result;
 
-assign rf_we    = gr_we && valid;
-assign rf_waddr = dest;
-assign rf_wdata = final_result;
 
-// debug info generate
-assign debug_wb_pc       = pc;
-assign debug_wb_rf_we    = {4{rf_we}};
-assign debug_wb_rf_wnum  = dest;
-assign debug_wb_rf_wdata = final_result;
-
-endmodule
+endmodule 
