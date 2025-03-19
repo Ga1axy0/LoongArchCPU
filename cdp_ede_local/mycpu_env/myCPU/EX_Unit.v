@@ -2,7 +2,7 @@ module EX_Unit (
     input  wire         clk,
     input  wire         reset,
     input  wire         ID_Valid,
-    input  wire [141:0] ID_to_EX_Bus;
+    input  wire [150:0] ID_to_EX_Bus;
     output wire [31:0]  alu_result,
     output wire         EX_Unit_Ready,
     output wire         EX_Valid,

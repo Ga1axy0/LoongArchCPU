@@ -8,8 +8,9 @@ module ME_Unit (
     output wire [31:0] data_sram_addr,
     output wire [31:0] data_sram_wdata,
     input  wire [31:0] data_sram_rdata,
-    input  wire [72:0] EX_to_ME_Bus;
-    output wire        ME_Valid
+    input  wire [72:0] EX_to_ME_Bus,
+    output wire        ME_Valid,
+    output wire [68:0] ME_to_WB_Bus
 );
 
 assign ME_Unit_Ready = 1'b1;
@@ -42,6 +43,13 @@ assign final_result = res_from_mem ? mem_result : alu_result;
 assign rf_we    = gr_we && valid;
 assign rf_waddr = dest;
 assign rf_wdata = final_result;
+
+assign ME_to_WB_Bus = {
+            pc,          //[68:37]   
+            rf_we,       //[37:37]
+            dest,        //[36:32]
+            final_result //[31:0]
+        };
 
 
 endmodule

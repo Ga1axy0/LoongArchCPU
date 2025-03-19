@@ -3,7 +3,7 @@ module WB_Unit (
     input  wire        reset,
     input  wire        ME_Valid,
     output wire        WB_Unit_Ready,
-    input  wire        ME_to_WB_Bus,
+    input  wire [68:0] ME_to_WB_Bus,
 
     output wire [31:0] debug_wb_pc,
     output wire [ 3:0] debug_wb_rf_we,
