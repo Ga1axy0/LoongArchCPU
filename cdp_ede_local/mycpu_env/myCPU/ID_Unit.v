@@ -4,10 +4,11 @@ module ID_Unit (
     input  wire         IF_Valid,
     output wire         ID_Unit_Ready,
     output wire         ID_Valid,
-    output wire [150:0] ID_to_EX_Bus,
+    output wire [149:0] ID_to_EX_Bus,
 
     input  wire [63:0]  IF_to_ID_Bus,
-    output wire [32:0]  br_bus,
+    input  wire [37:0]  WB_to_RF_Bus,
+    output wire [32:0]  br_bus
 );
 
 reg [31:0] pc;
@@ -26,11 +27,16 @@ always @(posedge clk) begin
         valid <= 1'b0;
     end else begin
         valid <= 1'b1;
-        ID_Valid <= IF_Valid;
+
     end
 end
+//TODO: change valid to id_valid
 
 assign ID_Unit_Ready = 1'b1;
+assign ID_Valid = IF_Valid && ID_Unit_Ready;
+
+wire        br_taken;
+wire [31:0] br_target;
 
 wire [11:0] alu_op;
 wire        load_op;
@@ -195,6 +201,9 @@ assign dest          = dst_is_r1 ? 5'd1 : rd;
 
 assign rf_raddr1 = rj;
 assign rf_raddr2 = src_reg_is_rd ? rd :rk;
+
+assign {rf_we, rf_waddr, rf_wdata} = WB_to_RF_Bus;
+
 regfile u_regfile(
     .clk    (clk      ),
     .raddr1 (rf_raddr1),
@@ -222,10 +231,10 @@ assign br_target = (inst_beq || inst_bne || inst_bl || inst_b) ? (pc + br_offs) 
 
 assign br_bus = {br_taken , br_target};
 
-assign ID_Valid = ~reset;
+
 
 assign ID_to_EX_Bus = {
-                       alu_op,          //[150:138]
+                       alu_op,          //[149:138]
                        pc,              //[137:106]
                        imm,             //[105:74]
                        rj_value,        //[73:42]

@@ -37,8 +37,9 @@ end
 
 assign inst_sram_en    = ID_Unit_Ready && IF_Valid;
 assign inst_sram_we    = 4'b0;
-assign inst_sram_addr  = pc;
+assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
+assign inst            = inst_sram_rdata;
 assign IF_to_ID_Bus    = {pc, inst};
 
 endmodule
