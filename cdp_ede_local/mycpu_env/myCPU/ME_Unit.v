@@ -1,17 +1,23 @@
 module ME_Unit (
     input  wire         clk,
     input  wire         reset,
-    input  wire         EX_Valid,
-    output wire         ME_Unit_Ready,
+    input  wire         EX_to_ME_Valid,
+    input  wire         WB_Allow_in,
+    output wire         ME_Allow_in,
     input  wire [31:0]  data_sram_rdata,
-    input  wire [70:0] EX_to_ME_Bus,
-    output wire         ME_Valid,
-    output wire [69:0]  ME_to_WB_Bus
+    input  wire [70:0]  EX_to_ME_Bus,
+    output wire         ME_to_WB_Valid,
+    output wire [69:0]  ME_to_WB_Bus,
+    output wire [4:0]   ME_dest
 );
 
-assign ME_Unit_Ready = 1'b1;
-assign ME_Valid = EX_Valid && ME_Unit_Ready;
+wire       ME_ReadyGO;
 
+assign ME_ReadyGO = 1'b1;
+assign ME_Allow_in = !ME_Valid || ME_ReadyGO && WB_Allow_in;
+assign ME_to_WB_Valid = ME_Valid && ME_ReadyGO;
+
+reg        ME_Valid;
 reg [31:0] pc;
 reg        mem_we;
 reg [31:0] alu_result;
@@ -22,7 +28,14 @@ reg [4:0]  dest;
 
 
 always @(posedge clk) begin
-    if(ME_Unit_Ready && EX_Valid && ~reset)begin
+
+    if(reset)begin
+        ME_Valid <= 1'b0;
+    end else if (ME_Allow_in) begin
+        ME_Valid <= EX_to_ME_Valid;
+    end
+
+    if(ME_Unit_Ready && EX_Valid)begin
         {
             pc,             //[70:39]
             alu_result,     //[38:7]    
