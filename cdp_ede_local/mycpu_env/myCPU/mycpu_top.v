@@ -36,7 +36,7 @@ wire [4:0]   EX_dest;
 wire [4:0]   ME_dest;
 wire [4:0]   WB_dest;
 
-wire [32:0]  br_bus;
+wire [33:0]  br_bus;
 wire [63:0]  IF_to_ID_Bus;
 wire [149:0] ID_to_EX_Bus;
 wire [70:0]  EX_to_ME_Bus;
@@ -86,7 +86,7 @@ EX_Unit EX(
     .data_sram_wdata(data_sram_wdata),
     .data_sram_we(data_sram_we),
     .EX_to_ME_Bus(EX_to_ME_Bus),
-    .EX_dest(EX_dest) 
+    .EX_dest(EX_dest),
     .ID_to_EX_Valid(ID_to_EX_Valid),
     .EX_to_ME_Valid(EX_to_ME_Valid),
     .EX_Allow_in(EX_Allow_in),

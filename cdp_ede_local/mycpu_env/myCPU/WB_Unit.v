@@ -55,7 +55,7 @@ assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = dest;
 assign debug_wb_rf_wdata = final_result;
 
-assign WB_dest = dest;
+assign WB_dest = dest & {5{WB_Valid}};
 
 assign WB_to_RF_Bus = {
                         rf_we,         //[37:37]

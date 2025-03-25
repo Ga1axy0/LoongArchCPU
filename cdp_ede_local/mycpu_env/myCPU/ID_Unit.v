@@ -12,7 +12,7 @@ module ID_Unit (
 
     input  wire [63:0]  IF_to_ID_Bus,
     input  wire [37:0]  WB_to_RF_Bus,
-    output wire [32:0]  br_bus
+    output wire [33:0]  br_bus
 );
 
 reg [31:0] pc;
@@ -20,11 +20,19 @@ reg [31:0] inst;
 reg        ID_Valid;
 wire       ID_ReadyGo;
 
+wire        rd_eq;
+wire        rj_eq;
+wire        rk_eq;
+wire        stall;
+
 assign     ID_ReadyGo = ~stall;
 assign     ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
+assign     ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 
 always @(posedge clk) begin
     if(reset)begin
+        ID_Valid <= 1'b0;
+    end else if (br_taken) begin
         ID_Valid <= 1'b0;
     end else if (ID_Allow_in) begin
         ID_Valid <= IF_to_ID_Valid;
@@ -37,16 +45,8 @@ always @(posedge clk) begin
 end
 
 
-wire        rd_eq;
-wire        rj_eq;
-wire        rk_eq;
-wire        stall;
 
-assign rd_eq = src_reg_is_rd && rd != 5b'0 && ((rd == EX_dest) || (rd == ME_dest) || (rd == WB_dest));
-assign rj_eq = src_reg_is_rj && rj != 5b'0 && ((rj == EX_dest) || (rj == ME_dest) || (rj == WB_dest));
-assign rk_eq = src_reg_is_rk && rk != 5b'0 && ((rk == EX_dest) || (rk == ME_dest) || (rk == WB_dest));
 
-assign stall = rd_eq || rj_eq || rk_eq;
 
 
 wire        br_taken;
@@ -196,9 +196,15 @@ assign br_offs = need_si26 ? {{ 4{i26[25]}}, i26[25:0], 2'b0} :
 assign jirl_offs = {{14{i16[15]}}, i16[15:0], 2'b0};
 
 assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w;
-assign src_reg_is_rj = ~(inst_b | inst_bl | inst_lu12i_w)
+assign src_reg_is_rj = ~(inst_b | inst_bl | inst_lu12i_w);
 assign src_reg_is_rk = ~(inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | 
                          inst_b | inst_bl | inst_beq | inst_bne | inst_lu12i_w);
+
+assign rd_eq = src_reg_is_rd && rd != 5'b0 && ((rd == EX_dest) || (rd == ME_dest) || (rd == WB_dest));
+assign rj_eq = src_reg_is_rj && rj != 5'b0 && ((rj == EX_dest) || (rj == ME_dest) || (rj == WB_dest));
+assign rk_eq = src_reg_is_rk && rk != 5'b0 && ((rk == EX_dest) || (rk == ME_dest) || (rk == WB_dest));
+
+assign stall = rd_eq | rj_eq | rk_eq;
 
 assign src1_is_pc    = inst_jirl | inst_bl;
 
@@ -243,12 +249,12 @@ assign br_taken = (   inst_beq  &&  rj_eq_rd
                    || inst_jirl
                    || inst_bl
                    || inst_b
-) && ID_Valid;
+) && ID_Valid && ~stall;
 
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b) ? (pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
 
-assign br_bus = {br_taken , br_target};
+assign br_bus = {br_taken , br_target, stall};
 
 
 

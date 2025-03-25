@@ -79,7 +79,7 @@ assign data_sram_we    = mem_we && EX_Valid ? 4'b1111 : 4'b0000;
 assign data_sram_addr  = alu_result;
 assign data_sram_wdata = rkd_value;
 
-assigne EX_dest        = dest;
+assign EX_dest         = dest & {5{EX_Valid}};
 
 assign EX_to_ME_Bus = {
             pc,             //[70:39]

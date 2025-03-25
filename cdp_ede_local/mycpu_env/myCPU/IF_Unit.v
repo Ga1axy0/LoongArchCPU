@@ -2,7 +2,7 @@ module IF_Unit (
     input  wire        clk,
     input  wire        reset,
     input  wire        ID_Allow_in,
-    input  wire [32:0] br_bus,
+    input  wire [33:0] br_bus,
 
     output wire        inst_sram_en,
     output wire [3:0]  inst_sram_we,
@@ -14,6 +14,7 @@ module IF_Unit (
 );
 
 wire        br_taken;
+wire        br_stall;
 wire [31:0] br_target;
 wire [31:0] seq_pc;
 wire [31:0] nextpc;
@@ -33,14 +34,14 @@ assign to_IF_Valid = ~reset;
 assign seq_pc                 = pc + 3'h4;
 assign nextpc                 = br_taken ? br_target : seq_pc;
 
-assign {br_taken , br_target} = br_bus;
+assign {br_taken , br_target , br_stall} = br_bus;
 
 
 always @(posedge clk) begin
     if (reset) begin
         pc <= 32'h1bfffffc;
     end
-    else if (ID_Allow_in && to_IF_Valid) begin
+    else if ((br_taken || ID_Allow_in )&& to_IF_Valid) begin
         pc <= nextpc;
     end
 end
@@ -50,10 +51,12 @@ always @(posedge clk) begin
         IF_Valid <= 1'b0;
     end else if(IF_Allow_in)begin
         IF_Valid <= to_IF_Valid;
+    end else if(br_taken) begin
+        IF_Valid <= 1'b0;
     end
 end
 
-assign inst_sram_en    = ID_Unit_Ready && IF_Valid;
+assign inst_sram_en    = (br_taken || ID_Allow_in) && to_IF_Valid;
 assign inst_sram_we    = 4'b0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;

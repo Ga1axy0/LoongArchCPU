@@ -12,12 +12,14 @@ module ME_Unit (
 );
 
 wire       ME_ReadyGO;
+reg        ME_Valid;
 
 assign ME_ReadyGO = 1'b1;
 assign ME_Allow_in = !ME_Valid || ME_ReadyGO && WB_Allow_in;
 assign ME_to_WB_Valid = ME_Valid && ME_ReadyGO;
 
-reg        ME_Valid;
+assign ME_dest = dest & {5{ME_Valid}};
+
 reg [31:0] pc;
 reg        mem_we;
 reg [31:0] alu_result;
@@ -35,7 +37,7 @@ always @(posedge clk) begin
         ME_Valid <= EX_to_ME_Valid;
     end
 
-    if(ME_Unit_Ready && EX_Valid)begin
+    if(EX_to_ME_Valid && ME_Allow_in)begin
         {
             pc,             //[70:39]
             alu_result,     //[38:7]    
