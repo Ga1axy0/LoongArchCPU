@@ -12,7 +12,8 @@ module EX_Unit (
     output wire [3:0]   data_sram_we,
     output wire [31:0]  data_sram_addr,
     output wire [31:0]  data_sram_wdata,
-    output wire [4:0]   EX_dest
+    output wire [4:0]   EX_dest,
+    output wire [36:0]  EX_Forward
 );
 
 reg [11:0] alu_op;
@@ -87,6 +88,10 @@ assign EX_to_ME_Bus = {
             res_from_mem,   //[6:6]
             gr_we,          //[5:5]
             dest            //[4:0]
+        };
+assign EX_Forward = {
+            EX_dest,
+            alu_result
         };
 
 endmodule

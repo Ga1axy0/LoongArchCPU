@@ -12,7 +12,11 @@ module ID_Unit (
 
     input  wire [63:0]  IF_to_ID_Bus,
     input  wire [37:0]  WB_to_RF_Bus,
-    output wire [33:0]  br_bus
+    output wire [33:0]  br_bus,
+
+    input  wire [36:0]  EX_Forward,
+    input  wire [36:0]  ME_Forward,
+    input  wire [36:0]  WB_Forward
 );
 
 reg [31:0] pc;
@@ -24,10 +28,13 @@ wire        rd_eq;
 wire        rj_eq;
 wire        rk_eq;
 wire        stall;
+wire        ld_stall;
 
-assign     ID_ReadyGo = ~stall;
-assign     ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
-assign     ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
+assign      ld_stall = inst_ld_w;
+
+assign      ID_ReadyGo = ~ld_stall;
+assign      ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
+assign      ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 
 always @(posedge clk) begin
     if(reset)begin
@@ -44,8 +51,16 @@ always @(posedge clk) begin
     
 end
 
+wire [4:0]  EX_Forward_Dest;
+wire [4:0]  ME_Forward_Dest;
+wire [4:0]  WB_Forward_Dest;
+wire [31:0] EX_Forward_Res;
+wire [31:0] ME_Forward_Res;
+wire [31:0] WB_Forward_Res;
 
-
+assign {EX_Forward_Dest, EX_Forward_Res} = EX_Forward;
+assign {ME_Forward_Dest, ME_Forward_Res} = ME_Forward;
+assign {WB_Forward_Dest, WB_Forward_Res} = WB_Forward;
 
 
 
@@ -240,8 +255,14 @@ regfile u_regfile(
     .wdata  (rf_wdata )
     );
 
-assign rj_value  = rf_rdata1;
-assign rkd_value = rf_rdata2;
+assign rj_value  = src_reg_is_rj ? ((EX_Forward_Dest == rj) ? EX_Forward_Res : 
+                                    (ME_Forward_Dest == rj) ? ME_Forward_Res : WB_Forward_Res) : 
+                                    rf_rdata1;
+assign rkd_value = src_reg_is_rd ? ((EX_Forward_Dest == rd) ? EX_Forward_Res : 
+                                    (ME_Forward_Dest == rd) ? ME_Forward_Res : WB_Forward_Res) : 
+                   src_reg_is_rk ? ((EX_Forward_Dest == rk) ? EX_Forward_Res : 
+                                    (ME_Forward_Dest == rk) ? ME_Forward_Res : WB_Forward_Res) :
+                                    rf_rdata2;
 
 assign rj_eq_rd = (rj_value == rkd_value);
 assign br_taken = (   inst_beq  &&  rj_eq_rd
@@ -249,7 +270,7 @@ assign br_taken = (   inst_beq  &&  rj_eq_rd
                    || inst_jirl
                    || inst_bl
                    || inst_b
-) && ID_Valid && ~stall;
+) && ID_Valid && ~ld_stall;
 
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b) ? (pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);

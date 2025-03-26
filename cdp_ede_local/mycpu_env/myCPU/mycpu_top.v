@@ -45,6 +45,9 @@ wire [37:0]  WB_to_RF_Bus;
 
 wire [31:0]  alu_result;
 
+wire [36:0]  EX_Forward;
+wire [36:0]  ME_Forward;
+wire [36:0]  WB_Forward;
 
 IF_Unit IF(
     .clk(clk),
@@ -73,7 +76,10 @@ ID_Unit ID(
     .IF_to_ID_Valid(IF_to_ID_Valid),
     .ID_Allow_in(ID_Allow_in),
     .ID_to_EX_Valid(ID_to_EX_Valid),
-    .EX_Allow_in(EX_Allow_in)
+    .EX_Allow_in(EX_Allow_in),
+    .EX_Forward(EX_Forward),
+    .ME_Forward(ME_Forward),
+    .WB_Forward(WB_Forward)
 );
 
 EX_Unit EX(
@@ -90,7 +96,8 @@ EX_Unit EX(
     .ID_to_EX_Valid(ID_to_EX_Valid),
     .EX_to_ME_Valid(EX_to_ME_Valid),
     .EX_Allow_in(EX_Allow_in),
-    .ME_Allow_in(ME_Allow_in)
+    .ME_Allow_in(ME_Allow_in),
+    .EX_Forward(EX_Forward)
 );
 
 ME_Unit ME(
@@ -103,7 +110,8 @@ ME_Unit ME(
     .EX_to_ME_Valid(EX_to_ME_Valid),
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .ME_Allow_in(ME_Allow_in),
-    .WB_Allow_in(WB_Allow_in)
+    .WB_Allow_in(WB_Allow_in),
+    .ME_Forward(ME_Forward)
 );
 
 WB_Unit WB(
@@ -117,7 +125,8 @@ WB_Unit WB(
     .WB_to_RF_Bus(WB_to_RF_Bus),
     .WB_dest(WB_dest),
     .ME_to_WB_Valid(ME_to_WB_Valid),
-    .WB_Allow_in(WB_Allow_in)
+    .WB_Allow_in(WB_Allow_in),
+    .WB_Forward(WB_Forward)
 );
 
 

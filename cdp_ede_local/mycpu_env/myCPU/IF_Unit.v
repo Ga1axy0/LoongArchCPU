@@ -26,7 +26,7 @@ wire        IF_Allow_in;
 wire        IF_ReadyGO;
 wire        to_IF_Valid;
 
-assign IF_ReadyGO = 1'b1;
+assign IF_ReadyGO = ~br_taken;
 assign IF_Allow_in = !IF_Valid || IF_ReadyGO && ID_Allow_in;
 assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 
