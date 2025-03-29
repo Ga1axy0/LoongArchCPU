@@ -8,15 +8,17 @@ module ID_Unit (
     input  wire [4:0]   WB_dest,
     output wire         ID_Allow_in,
     output wire         ID_to_EX_Valid,
-    output wire [149:0] ID_to_EX_Bus,
+    output wire [150:0] ID_to_EX_Bus,
 
     input  wire [63:0]  IF_to_ID_Bus,
     input  wire [37:0]  WB_to_RF_Bus,
     output wire [33:0]  br_bus,
 
-    input  wire [36:0]  EX_Forward,
-    input  wire [36:0]  ME_Forward,
-    input  wire [36:0]  WB_Forward
+    input  wire         EX_to_ID_Ld_op,
+
+    input  wire [31:0]  EX_Forward_Res,
+    input  wire [31:0]  ME_Forward_Res,
+    input  wire [31:0]  WB_Forward_Res
 );
 
 reg [31:0] pc;
@@ -30,9 +32,11 @@ wire        rk_eq;
 wire        stall;
 wire        ld_stall;
 
-assign      ld_stall = inst_ld_w;
+assign      ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq) || 
+                                          ((rd == EX_dest) & rd_eq) || 
+                                          ((rk == EX_dest) & rk_eq));
 
-assign      ID_ReadyGo = ~ld_stall;
+assign      ID_ReadyGo = ID_Valid & ~ld_stall;
 assign      ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
 assign      ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 
@@ -50,18 +54,6 @@ always @(posedge clk) begin
     end 
     
 end
-
-wire [4:0]  EX_Forward_Dest;
-wire [4:0]  ME_Forward_Dest;
-wire [4:0]  WB_Forward_Dest;
-wire [31:0] EX_Forward_Res;
-wire [31:0] ME_Forward_Res;
-wire [31:0] WB_Forward_Res;
-
-assign {EX_Forward_Dest, EX_Forward_Res} = EX_Forward;
-assign {ME_Forward_Dest, ME_Forward_Res} = ME_Forward;
-assign {WB_Forward_Dest, WB_Forward_Res} = WB_Forward;
-
 
 
 wire        br_taken;
@@ -255,14 +247,14 @@ regfile u_regfile(
     .wdata  (rf_wdata )
     );
 
-assign rj_value  = src_reg_is_rj ? ((EX_Forward_Dest == rj) ? EX_Forward_Res : 
-                                    (ME_Forward_Dest == rj) ? ME_Forward_Res : WB_Forward_Res) : 
-                                    rf_rdata1;
-assign rkd_value = src_reg_is_rd ? ((EX_Forward_Dest == rd) ? EX_Forward_Res : 
-                                    (ME_Forward_Dest == rd) ? ME_Forward_Res : WB_Forward_Res) : 
-                   src_reg_is_rk ? ((EX_Forward_Dest == rk) ? EX_Forward_Res : 
-                                    (ME_Forward_Dest == rk) ? ME_Forward_Res : WB_Forward_Res) :
-                                    rf_rdata2;
+assign rj_value  = rj_eq ? ((EX_dest == rj) ? EX_Forward_Res : 
+                            (ME_dest == rj) ? ME_Forward_Res : WB_Forward_Res) : 
+                            rf_rdata1;
+assign rkd_value = rd_eq ? ((EX_dest == rd) ? EX_Forward_Res : 
+                            (ME_dest == rd) ? ME_Forward_Res : WB_Forward_Res) : 
+                   rk_eq ? ((EX_dest == rk) ? EX_Forward_Res : 
+                            (ME_dest == rk) ? ME_Forward_Res : WB_Forward_Res) :
+                            rf_rdata2;
 
 assign rj_eq_rd = (rj_value == rkd_value);
 assign br_taken = (   inst_beq  &&  rj_eq_rd
@@ -280,6 +272,7 @@ assign br_bus = {br_taken , br_target, stall};
 
 
 assign ID_to_EX_Bus = {
+                       inst_ld_w,
                        alu_op,          //[149:138]
                        pc,              //[137:106]
                        imm,             //[105:74]

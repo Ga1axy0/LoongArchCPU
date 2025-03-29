@@ -51,12 +51,10 @@ always @(posedge clk) begin
         IF_Valid <= 1'b0;
     end else if(IF_Allow_in)begin
         IF_Valid <= to_IF_Valid;
-    end else if(br_taken) begin
-        IF_Valid <= 1'b0;
     end
 end
 
-assign inst_sram_en    = (br_taken || ID_Allow_in) && to_IF_Valid;
+assign inst_sram_en    = (br_taken || IF_Allow_in) && to_IF_Valid;
 assign inst_sram_we    = 4'b0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;

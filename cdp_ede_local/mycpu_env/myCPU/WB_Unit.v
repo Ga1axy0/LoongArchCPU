@@ -12,7 +12,7 @@ module WB_Unit (
 
     output wire [37:0] WB_to_RF_Bus,
     output wire [4:0]  WB_dest,
-    output wire [36:0] WB_Forward
+    output wire [31:0] WB_Forward_Res
     );
 
 reg [31:0]  pc;
@@ -56,7 +56,7 @@ assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = dest;
 assign debug_wb_rf_wdata = final_result;
 
-assign WB_dest = dest & {5{WB_Valid}};
+assign WB_dest = dest & {5{rf_we}};
 
 assign WB_to_RF_Bus = {
                         rf_we,         //[37:37]
@@ -64,9 +64,6 @@ assign WB_to_RF_Bus = {
                         rf_wdata       //[31:0]
                     };
 
-assign WB_Forward = {
-                        WB_dest,
-                        final_result     
-                    }
+assign WB_Forward_Res = final_result;
 
 endmodule

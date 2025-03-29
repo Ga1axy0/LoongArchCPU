@@ -32,22 +32,24 @@ wire         ID_to_EX_Valid;
 wire         EX_to_ME_Valid;
 wire         ME_to_WB_Valid;
 
+wire         EX_to_ID_Ld_op;     
+
 wire [4:0]   EX_dest;
 wire [4:0]   ME_dest;
 wire [4:0]   WB_dest;
 
 wire [33:0]  br_bus;
 wire [63:0]  IF_to_ID_Bus;
-wire [149:0] ID_to_EX_Bus;
+wire [150:0] ID_to_EX_Bus;
 wire [70:0]  EX_to_ME_Bus;
 wire [69:0]  ME_to_WB_Bus;
 wire [37:0]  WB_to_RF_Bus;
 
 wire [31:0]  alu_result;
 
-wire [36:0]  EX_Forward;
-wire [36:0]  ME_Forward;
-wire [36:0]  WB_Forward;
+wire [31:0]  EX_Forward_Res;
+wire [31:0]  ME_Forward_Res;
+wire [31:0]  WB_Forward_Res;
 
 IF_Unit IF(
     .clk(clk),
@@ -77,9 +79,10 @@ ID_Unit ID(
     .ID_Allow_in(ID_Allow_in),
     .ID_to_EX_Valid(ID_to_EX_Valid),
     .EX_Allow_in(EX_Allow_in),
-    .EX_Forward(EX_Forward),
-    .ME_Forward(ME_Forward),
-    .WB_Forward(WB_Forward)
+    .EX_Forward_Res(EX_Forward_Res),
+    .ME_Forward_Res(ME_Forward_Res),
+    .WB_Forward_Res(WB_Forward_Res),
+    .EX_to_ID_Ld_op(EX_to_ID_Ld_op)
 );
 
 EX_Unit EX(
@@ -97,7 +100,8 @@ EX_Unit EX(
     .EX_to_ME_Valid(EX_to_ME_Valid),
     .EX_Allow_in(EX_Allow_in),
     .ME_Allow_in(ME_Allow_in),
-    .EX_Forward(EX_Forward)
+    .EX_Forward_Res(EX_Forward_Res),
+    .EX_to_ID_Ld_op(EX_to_ID_Ld_op)
 );
 
 ME_Unit ME(
@@ -111,7 +115,7 @@ ME_Unit ME(
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .ME_Allow_in(ME_Allow_in),
     .WB_Allow_in(WB_Allow_in),
-    .ME_Forward(ME_Forward)
+    .ME_Forward_Res(ME_Forward_Res)
 );
 
 WB_Unit WB(
@@ -126,7 +130,7 @@ WB_Unit WB(
     .WB_dest(WB_dest),
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .WB_Allow_in(WB_Allow_in),
-    .WB_Forward(WB_Forward)
+    .WB_Forward_Res(WB_Forward_Res)
 );
 
 

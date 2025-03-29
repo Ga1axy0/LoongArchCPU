@@ -2,7 +2,7 @@ module EX_Unit (
     input  wire         clk,
     input  wire         reset,
     input  wire         ID_to_EX_Valid,
-    input  wire [149:0] ID_to_EX_Bus,
+    input  wire [150:0] ID_to_EX_Bus,
     output wire [31:0]  alu_result,
     output wire         EX_Allow_in,
     output wire         EX_to_ME_Valid,
@@ -13,9 +13,11 @@ module EX_Unit (
     output wire [31:0]  data_sram_addr,
     output wire [31:0]  data_sram_wdata,
     output wire [4:0]   EX_dest,
-    output wire [36:0]  EX_Forward
+    output wire [31:0]  EX_Forward_Res,
+    output wire         EX_to_ID_Ld_op
 );
 
+reg        inst_ld_w;
 reg [11:0] alu_op;
 reg [31:0] pc;
 reg [31:0] imm;
@@ -35,6 +37,8 @@ assign EX_ReadyGo = 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
+assign EX_to_ID_Ld_op = inst_ld_w;
+
 always @(posedge clk) begin
 
     if(reset)begin
@@ -45,6 +49,7 @@ always @(posedge clk) begin
 
     if(EX_Allow_in && ID_to_EX_Valid)begin
         {
+            inst_ld_w,
             alu_op,          //[149:138]
             pc,              //[137:106]
             imm,             //[105:74]
@@ -89,9 +94,7 @@ assign EX_to_ME_Bus = {
             gr_we,          //[5:5]
             dest            //[4:0]
         };
-assign EX_Forward = {
-            EX_dest,
-            alu_result
-        };
+
+assign EX_Forward_Res = alu_result;
 
 endmodule

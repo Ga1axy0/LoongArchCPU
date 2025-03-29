@@ -9,7 +9,7 @@ module ME_Unit (
     output wire         ME_to_WB_Valid,
     output wire [69:0]  ME_to_WB_Bus,
     output wire [4:0]   ME_dest,
-    output wire [36:0]  ME_Forward
+    output wire [31:0]  ME_Forward_Res
 );
 
 wire       ME_ReadyGO;
@@ -64,8 +64,5 @@ assign ME_to_WB_Bus = {
             dest,        //[36:32]
             final_result //[31:0]
         };
-assign ME_Forward = {
-            ME_dest,
-            final_result
-        };
+assign ME_Forward_Res = final_result;
 endmodule
