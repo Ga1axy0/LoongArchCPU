@@ -2,7 +2,7 @@ module EX_Unit (
     input  wire         clk,
     input  wire         reset,
     input  wire         ID_to_EX_Valid,
-    input  wire [150:0] ID_to_EX_Bus,
+    input  wire [155:0] ID_to_EX_Bus,
     output wire [31:0]  alu_result,
     output wire         EX_Allow_in,
     output wire         EX_to_ME_Valid,
@@ -18,7 +18,7 @@ module EX_Unit (
 );
 
 reg        inst_ld_w;
-reg [11:0] alu_op;
+reg [15:0] alu_op;
 reg [31:0] pc;
 reg [31:0] imm;
 reg [31:0] rj_value;
@@ -30,10 +30,12 @@ reg        res_from_mem;
 reg        gr_we;
 reg        mem_we;
 reg        EX_Valid;
+reg        src_is_signed;
 
-wire       EX_ReadGo;
+wire       EX_ReadyGo;
+wire       divres_valid;
 
-assign EX_ReadyGo = 1'b1;
+assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
@@ -49,8 +51,9 @@ always @(posedge clk) begin
 
     if(EX_Allow_in && ID_to_EX_Valid)begin
         {
+            src_is_signed,
             inst_ld_w,
-            alu_op,          //[149:138]
+            alu_op,          //[151:138]
             pc,              //[137:106]
             imm,             //[105:74]
             rj_value,        //[73:42]
@@ -74,10 +77,14 @@ assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
 assign alu_src2 = src2_is_imm ? imm : rkd_value;
 
 alu u_alu(
+    .clk(clk),
+    .reset(reset),
     .alu_op     (alu_op    ),
     .alu_src1   (alu_src1  ),
     .alu_src2   (alu_src2  ),
-    .alu_result (alu_result)
+    .src_is_signed(src_is_signed),
+    .alu_result (alu_result),
+    .divres_valid(divres_valid)
     );
 
 assign data_sram_en    = 1'b1;

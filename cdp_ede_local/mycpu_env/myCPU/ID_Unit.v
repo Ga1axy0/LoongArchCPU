@@ -8,7 +8,7 @@ module ID_Unit (
     input  wire [4:0]   WB_dest,
     output wire         ID_Allow_in,
     output wire         ID_to_EX_Valid,
-    output wire [150:0] ID_to_EX_Bus,
+    output wire [155:0] ID_to_EX_Bus,
 
     input  wire [63:0]  IF_to_ID_Bus,
     input  wire [37:0]  WB_to_RF_Bus,
@@ -59,7 +59,7 @@ end
 wire        br_taken;
 wire [31:0] br_target;
 
-wire [11:0] alu_op;
+wire [15:0] alu_op;
 wire        load_op;
 wire        src1_is_pc;
 wire        src2_is_imm;
@@ -70,6 +70,7 @@ wire        mem_we;
 wire        src_reg_is_rd;
 wire        src_reg_is_rj;
 wire        src_reg_is_rk;
+wire        src_is_signed;
 wire [4: 0] dest;
 wire [31:0] rj_value;
 wire [31:0] rkd_value;
@@ -123,6 +124,13 @@ wire        inst_sll_w;
 wire        inst_srl_w;
 wire        inst_sra_w;
 wire        inst_pcaddu12i;
+wire        inst_mul_w;
+wire        inst_mulh_w;
+wire        inst_mulh_wu;
+wire        inst_div_w;
+wire        inst_div_wu;
+wire        inst_mod_w;
+wire        inst_mod_wu;
 
 wire        need_ui5;
 wire        need_ui12;
@@ -189,6 +197,13 @@ assign inst_sll_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] 
 assign inst_srl_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h0f];
 assign inst_sra_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h10];
 assign inst_pcaddu12i = op_31_26_d[6'h07] & ~inst[25];
+assign inst_mul_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h18];
+assign inst_mulh_w    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h19];
+assign inst_mulh_wu   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h1a];
+assign inst_div_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h00];
+assign inst_mod_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h01];
+assign inst_div_wu    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h02];
+assign inst_mod_wu    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h03];
 
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w
@@ -204,6 +219,12 @@ assign alu_op[ 8] = inst_slli_w | inst_sll_w;
 assign alu_op[ 9] = inst_srli_w | inst_srl_w;
 assign alu_op[10] = inst_srai_w | inst_sra_w;
 assign alu_op[11] = inst_lu12i_w;
+assign alu_op[12] = inst_mul_w ;
+assign alu_op[13] = inst_mulh_w | inst_mulh_wu;
+assign alu_op[14] = inst_div_w | inst_div_wu;
+assign alu_op[15] = inst_mod_w | inst_mod_wu;
+
+assign src_is_signed = inst_mul_w | inst_mulh_w | inst_div_w | inst_mod_w;
 
 assign need_ui5   =  inst_slli_w | inst_srli_w | inst_srai_w;
 assign need_ui12  =  inst_andi | inst_ori | inst_xori;
@@ -301,8 +322,9 @@ assign br_bus = {br_taken , br_target, stall};
 
 
 assign ID_to_EX_Bus = {
+                       src_is_signed,
                        inst_ld_w,
-                       alu_op,          //[149:138]
+                       alu_op,          //[153:138]
                        pc,              //[137:106]
                        imm,             //[105:74]
                        rj_value,        //[73:42]
