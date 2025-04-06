@@ -2,12 +2,12 @@ module EX_Unit (
     input  wire         clk,
     input  wire         reset,
     input  wire         ID_to_EX_Valid,
-    input  wire [155:0] ID_to_EX_Bus,
+    input  wire [160:0] ID_to_EX_Bus,
     output wire [31:0]  alu_result,
     output wire         EX_Allow_in,
     output wire         EX_to_ME_Valid,
     input  wire         ME_Allow_in,
-    output wire [70:0]  EX_to_ME_Bus,
+    output wire [75:0]  EX_to_ME_Bus,
     output wire         data_sram_en,
     output wire [3:0]   data_sram_we,
     output wire [31:0]  data_sram_addr,
@@ -28,9 +28,11 @@ reg        src1_is_pc;
 reg        src2_is_imm;
 reg        res_from_mem;
 reg        gr_we;
-reg        mem_we;
+reg [3:0]  mem_we;
 reg        EX_Valid;
 reg        src_is_signed;
+reg        mem_is_byte;
+reg        mem_is_half;
 
 wire       EX_ReadyGo;
 wire       divres_valid;
@@ -51,19 +53,21 @@ always @(posedge clk) begin
 
     if(EX_Allow_in && ID_to_EX_Valid)begin
         {
+            mem_is_byte,
+            mem_is_half,
             src_is_signed,
             inst_ld_w,
-            alu_op,          //[151:138]
-            pc,              //[137:106]
-            imm,             //[105:74]
-            rj_value,        //[73:42]
-            rkd_value,       //[41:10]
-            src1_is_pc,      //[9:9]
-            src2_is_imm,     //[8:8]
-            res_from_mem,    //[7:7]
-            gr_we,           //[6:6]
-            mem_we,          //[5:5]
-            dest             //[4:0]
+            alu_op,         
+            pc,             
+            imm,             
+            rj_value,       
+            rkd_value,       
+            src1_is_pc,     
+            src2_is_imm,     
+            res_from_mem,    
+            gr_we,           
+            mem_we,         
+            dest             
         } <= ID_to_EX_Bus;
     end
 end
@@ -87,14 +91,32 @@ alu u_alu(
     .divres_valid(divres_valid)
     );
 
+wire [3:0] dest_flag;
+
 assign data_sram_en    = 1'b1;
-assign data_sram_we    = mem_we && EX_Valid ? 4'b1111 : 4'b0000;
+assign data_sram_we    = mem_we & {4{EX_Valid}};
 assign data_sram_addr  = alu_result;
 assign data_sram_wdata = rkd_value;
+
+assign dest_flag = {src_is_signed,mem_is_byte,mem_is_half,data_sram_addr[1:0]};
+
+/*
+    read byte:
+    x1000 => [7:0]
+    x1001 => [15:8]
+    x1010 => [23:16]
+    x1011 => [31:24]
+    read half
+    x0100 => [15:0]
+    x0110 => [31:16]
+    read full
+    x0000 => [31:0]
+*/
 
 assign EX_dest         = dest & {5{EX_Valid}};
 
 assign EX_to_ME_Bus = {
+            dest_flag,      //[75:71]
             pc,             //[70:39]
             alu_result,     //[38:7]    
             res_from_mem,   //[6:6]
