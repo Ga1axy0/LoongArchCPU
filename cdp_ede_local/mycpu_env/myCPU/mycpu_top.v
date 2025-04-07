@@ -40,7 +40,7 @@ wire [4:0]   WB_dest;
 
 wire [33:0]  br_bus;
 wire [63:0]  IF_to_ID_Bus;
-wire [157:0] ID_to_EX_Bus;
+wire [160:0] ID_to_EX_Bus;
 wire [75:0]  EX_to_ME_Bus;
 wire [69:0]  ME_to_WB_Bus;
 wire [37:0]  WB_to_RF_Bus;

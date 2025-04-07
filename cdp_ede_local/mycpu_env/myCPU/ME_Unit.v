@@ -19,7 +19,7 @@ assign ME_ReadyGO = 1'b1;
 assign ME_Allow_in = !ME_Valid || ME_ReadyGO && WB_Allow_in;
 assign ME_to_WB_Valid = ME_Valid && ME_ReadyGO;
 
-assign ME_dest = dest & {5{ME_Valid}};
+assign ME_dest = dest & {5{ME_Valid}} & {5{gr_we}};
 
 reg [31:0] pc;
 reg        mem_we;
@@ -67,25 +67,25 @@ wire [31:0] final_result;
     00000 => [31:0]
 */
 
-assign mem_result   = (dest_flag == 5'b11000) ? {{24{datadata_sram_rdata[7]}},data_sram_rdata[7:0]}:
+assign mem_result   = (dest_flag == 5'b11000) ? {{24{data_sram_rdata[7]}},data_sram_rdata[7:0]}:
                       (dest_flag == 5'b01000) ? {24'b0,data_sram_rdata[7:0]}:
 
-                      (dest_flag == 5'b11001) ? {{24{datadata_sram_rdata[15]}},data_sram_rdata[15:8]}:
+                      (dest_flag == 5'b11001) ? {{24{data_sram_rdata[15]}},data_sram_rdata[15:8]}:
                       (dest_flag == 5'b01001) ? {24'b0,data_sram_rdata[15:8]}:
 
-                      (dest_flag == 5'b11010) ? {{24{datadata_sram_rdata[23]}},data_sram_rdata[23:16]}:
+                      (dest_flag == 5'b11010) ? {{24{data_sram_rdata[23]}},data_sram_rdata[23:16]}:
                       (dest_flag == 5'b01010) ? {24'b0,data_sram_rdata[23:16]}:
 
-                      (dest_flag == 5'b11011) ? {{24{datadata_sram_rdata[31]}},data_sram_rdata[31:24]}:
+                      (dest_flag == 5'b11011) ? {{24{data_sram_rdata[31]}},data_sram_rdata[31:24]}:
                       (dest_flag == 5'b01011) ? {24'b0,data_sram_rdata[31:24]}:
                       
-                      (dest_flag == 5'b10100) ? {{16{datadata_sram_rdata[15]}},data_sram_rdata[15:0]}:
+                      (dest_flag == 5'b10100) ? {{16{data_sram_rdata[15]}},data_sram_rdata[15:0]}:
                       (dest_flag == 5'b00100) ? {16'b0,data_sram_rdata[15:0]}:
 
-                      (dest_flag == 5'b10110) ? {{16{datadata_sram_rdata[31]}},data_sram_rdata[31:16]}:
+                      (dest_flag == 5'b10110) ? {{16{data_sram_rdata[31]}},data_sram_rdata[31:16]}:
                       (dest_flag == 5'b00110) ? {16'b0,data_sram_rdata[31:16]}:
 
-                      (dest_flag == 5'b00000) ? data_sram_rdata;
+                      /*dest_flag == 5'b00000*/ data_sram_rdata;
 
 assign final_result = res_from_mem ? mem_result : alu_result;
 
@@ -97,5 +97,5 @@ assign ME_to_WB_Bus = {
             dest,        //[36:32]
             final_result //[31:0]
         };
-assign ME_Forward_Res = final_result;
+assign ME_Forward_Res = final_result & {32{gr_we}};
 endmodule

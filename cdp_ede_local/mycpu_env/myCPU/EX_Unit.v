@@ -91,14 +91,22 @@ alu u_alu(
     .divres_valid(divres_valid)
     );
 
-wire [3:0] dest_flag;
+wire [4:0] dest_flag;
+wire [1:0] data_sram_offset;
 
-assign data_sram_en    = 1'b1;
-assign data_sram_we    = mem_we & {4{EX_Valid}};
-assign data_sram_addr  = alu_result;
-assign data_sram_wdata = rkd_value;
+assign data_sram_addr   = alu_result;
+assign data_sram_offset = data_sram_addr [1:0];
+assign data_sram_en     = 1'b1;
 
-assign dest_flag = {src_is_signed,mem_is_byte,mem_is_half,data_sram_addr[1:0]};
+assign data_sram_we    = (mem_we == 4'b0001) ? (4'b0001 << data_sram_offset) &{4{EX_Valid}} :
+                         (mem_we == 4'b0011) ? (4'b0011 << data_sram_offset) &{4{EX_Valid}}:
+                          mem_we & {4{EX_Valid}};
+
+assign data_sram_wdata = (mem_we == 4'b0001) ? (rkd_value[7:0] << (8 * data_sram_offset)) : 
+                         (mem_we == 4'b0011) ? (rkd_value[15:0] << (8 * data_sram_offset)) : 
+                          rkd_value;
+
+assign dest_flag = {src_is_signed, mem_is_byte, mem_is_half, data_sram_offset};
 
 /*
     read byte:
@@ -113,7 +121,7 @@ assign dest_flag = {src_is_signed,mem_is_byte,mem_is_half,data_sram_addr[1:0]};
     x0000 => [31:0]
 */
 
-assign EX_dest         = dest & {5{EX_Valid}};
+assign EX_dest         = dest & {5{EX_Valid}} & {5{gr_we}};
 
 assign EX_to_ME_Bus = {
             dest_flag,      //[75:71]
