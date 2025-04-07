@@ -1,16 +1,17 @@
+`include "my_cpu.vh"
 module IF_Unit (
-    input  wire        clk,
-    input  wire        reset,
-    input  wire        ID_Allow_in,
-    input  wire [33:0] br_bus,
+    input  wire                         clk,
+    input  wire                         reset,
+    input  wire                         ID_Allow_in,
+    input  wire [br_bus_Size-1      :0] br_bus,
 
-    output wire        inst_sram_en,
-    output wire [3:0]  inst_sram_we,
-    output wire [31:0] inst_sram_addr,
-    output wire [31:0] inst_sram_wdata,
-    input  wire [31:0] inst_sram_rdata,
-    output wire [63:0] IF_to_ID_Bus,
-    output wire        IF_to_ID_Valid
+    output wire                         inst_sram_en,
+    output wire [3:0]                   inst_sram_we,
+    output wire [31:0]                  inst_sram_addr,
+    output wire [31:0]                  inst_sram_wdata,
+    input  wire [31:0]                  inst_sram_rdata,
+    output wire [IF_to_ID_Bus_Size-1:0] IF_to_ID_Bus,
+    output wire                         IF_to_ID_Valid
 );
 
 wire        br_taken;

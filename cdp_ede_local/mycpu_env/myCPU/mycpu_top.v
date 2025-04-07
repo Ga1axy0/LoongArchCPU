@@ -1,3 +1,4 @@
+`include "my_cpu.vh"
 module mycpu_top(
     input  wire        clk,
     input  wire        resetn,
@@ -34,22 +35,22 @@ wire         ME_to_WB_Valid;
 
 wire         EX_to_ID_Ld_op;     
 
-wire [4:0]   EX_dest;
-wire [4:0]   ME_dest;
-wire [4:0]   WB_dest;
+wire [default_Dest_Size-1:0]   EX_dest;
+wire [default_Dest_Size-1:0]   ME_dest;
+wire [default_Dest_Size-1:0]   WB_dest;
 
-wire [33:0]  br_bus;
-wire [63:0]  IF_to_ID_Bus;
-wire [160:0] ID_to_EX_Bus;
-wire [75:0]  EX_to_ME_Bus;
-wire [69:0]  ME_to_WB_Bus;
-wire [37:0]  WB_to_RF_Bus;
+wire [br_bus_Size-1      :0]  br_bus;
+wire [IF_to_ID_Bus_Size-1:0]  IF_to_ID_Bus;
+wire [ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus;
+wire [EX_to_ME_Bus_Size-1:0]  EX_to_ME_Bus;
+wire [ME_to_WB_Bus_Size-1:0]  ME_to_WB_Bus;
+wire [WB_to_RF_Bus_Size-1:0]  WB_to_RF_Bus;
 
-wire [31:0]  alu_result;
+wire [default_Data_Size-1:0]  alu_result;
 
-wire [31:0]  EX_Forward_Res;
-wire [31:0]  ME_Forward_Res;
-wire [31:0]  WB_Forward_Res;
+wire [default_Data_Size-1:0]  EX_Forward_Res;
+wire [default_Data_Size-1:0]  ME_Forward_Res;
+wire [default_Data_Size-1:0]  WB_Forward_Res;
 
 IF_Unit IF(
     .clk(clk),

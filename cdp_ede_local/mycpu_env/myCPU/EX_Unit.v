@@ -1,41 +1,42 @@
+`include "my_cpu.vh"
 module EX_Unit (
-    input  wire         clk,
-    input  wire         reset,
-    input  wire         ID_to_EX_Valid,
-    input  wire [160:0] ID_to_EX_Bus,
-    output wire [31:0]  alu_result,
-    output wire         EX_Allow_in,
-    output wire         EX_to_ME_Valid,
-    input  wire         ME_Allow_in,
-    output wire [75:0]  EX_to_ME_Bus,
-    output wire         data_sram_en,
-    output wire [3:0]   data_sram_we,
-    output wire [31:0]  data_sram_addr,
-    output wire [31:0]  data_sram_wdata,
-    output wire [4:0]   EX_dest,
-    output wire [31:0]  EX_Forward_Res,
-    output wire         EX_to_ID_Ld_op
+    input  wire                         clk,
+    input  wire                         reset,
+    input  wire                         ID_to_EX_Valid,
+    input  wire [ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
+    output wire [default_Data_Size:0]   alu_result,
+    output wire                         EX_Allow_in,
+    output wire                         EX_to_ME_Valid,
+    input  wire                         ME_Allow_in,
+    output wire [EX_to_ME_Bus_Size-1:0] EX_to_ME_Bus,
+    output wire                         data_sram_en,
+    output wire [3:0]                   data_sram_we,
+    output wire [31:0]                  data_sram_addr,
+    output wire [31:0]                  data_sram_wdata,
+    output wire [default_Dest_Size-1:0] EX_dest,
+    output wire [default_Data_Size-1:0] EX_Forward_Res,
+    output wire                         EX_to_ID_Ld_op
 );
 
-reg        inst_ld_w;
-reg [15:0] alu_op;
-reg [31:0] pc;
-reg [31:0] imm;
-reg [31:0] rj_value;
-reg [31:0] rkd_value;
-reg [4:0]  dest;
-reg        src1_is_pc;
-reg        src2_is_imm;
-reg        res_from_mem;
-reg        gr_we;
-reg [3:0]  mem_we;
-reg        EX_Valid;
-reg        src_is_signed;
-reg        mem_is_byte;
-reg        mem_is_half;
+reg                   inst_ld_w;
+reg [alu_op_Size-1:0] alu_op;
+reg [31:0]            pc;
+reg [31:0]            imm;
+reg [31:0]            rj_value;
+reg [31:0]            rkd_value;
+reg [4:0]             dest;
+reg                   src1_is_pc;
+reg                   src2_is_imm;
+reg                   res_from_mem;
+reg                   gr_we;
+reg [3:0]             mem_we;
+reg                   EX_Valid;
+reg                   src_is_signed;
+reg                   mem_is_byte;
+reg                   mem_is_half;
 
-wire       EX_ReadyGo;
-wire       divres_valid;
+wire                  EX_ReadyGo;
+wire                  divres_valid;
 
 assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;

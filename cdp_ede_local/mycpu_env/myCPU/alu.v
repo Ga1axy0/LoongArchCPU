@@ -1,12 +1,13 @@
+`include "my_cpu.vh"
 module alu(
-  input  wire        clk,
-  input  wire        reset,
-  input  wire [15:0] alu_op,
-  input  wire [31:0] alu_src1,
-  input  wire [31:0] alu_src2,
-  input  wire        src_is_signed,
-  output wire [31:0] alu_result,
-  output wire        divres_valid
+  input  wire                         clk,
+  input  wire                         reset,
+  input  wire [alu_op_Size:0]         alu_op,
+  input  wire [31:0]                  alu_src1,
+  input  wire [31:0]                  alu_src2,
+  input  wire                         src_is_signed,
+  output wire [default_Data_Size-1:0] alu_result,
+  output wire                         divres_valid
 );
 
 wire op_add;   //add operation

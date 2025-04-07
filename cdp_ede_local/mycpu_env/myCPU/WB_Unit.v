@@ -1,18 +1,19 @@
+`include "my_cpu.vh"
 module WB_Unit (
-    input  wire        clk,
-    input  wire        reset,
-    output wire        WB_Allow_in,
-    input  wire        ME_to_WB_Valid,
-    input  wire [69:0] ME_to_WB_Bus,
+    input  wire                         clk,
+    input  wire                         reset,
+    output wire                         WB_Allow_in,
+    input  wire                         ME_to_WB_Valid,
+    input  wire [ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
 
-    output wire [31:0] debug_wb_pc,
-    output wire [ 3:0] debug_wb_rf_we,
-    output wire [ 4:0] debug_wb_rf_wnum,
-    output wire [31:0] debug_wb_rf_wdata,
+    output wire [31:0]                  debug_wb_pc,
+    output wire [ 3:0]                  debug_wb_rf_we,
+    output wire [ 4:0]                  debug_wb_rf_wnum,
+    output wire [31:0]                  debug_wb_rf_wdata,
 
-    output wire [37:0] WB_to_RF_Bus,
-    output wire [4:0]  WB_dest,
-    output wire [31:0] WB_Forward_Res
+    output wire [WB_to_RF_Bus_Size-1:0] WB_to_RF_Bus,
+    output wire [default_Dest_Size-1:0] WB_dest,
+    output wire [default_Data_Size-1:0] WB_Forward_Res
     );
 
 reg [31:0]  pc;

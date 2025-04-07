@@ -1,15 +1,16 @@
+`include "my_cpu.vh"
 module ME_Unit (
-    input  wire         clk,
-    input  wire         reset,
-    input  wire         EX_to_ME_Valid,
-    input  wire         WB_Allow_in,
-    output wire         ME_Allow_in,
-    input  wire [31:0]  data_sram_rdata,
-    input  wire [75:0]  EX_to_ME_Bus,
-    output wire         ME_to_WB_Valid,
-    output wire [69:0]  ME_to_WB_Bus,
-    output wire [4:0]   ME_dest,
-    output wire [31:0]  ME_Forward_Res
+    input  wire                         clk,
+    input  wire                         reset,
+    input  wire                         EX_to_ME_Valid,
+    input  wire                         WB_Allow_in,
+    output wire                         ME_Allow_in,
+    input  wire [31:0]                  data_sram_rdata,
+    input  wire [EX_to_ME_Bus_Size-1:0] EX_to_ME_Bus,
+    output wire                         ME_to_WB_Valid,
+    output wire [ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
+    output wire [default_Dest_Size-1:0] ME_dest,
+    output wire [default_Data_Size-1:0] ME_Forward_Res
 );
 
 wire       ME_ReadyGO;
