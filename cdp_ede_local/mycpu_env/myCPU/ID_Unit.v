@@ -1,25 +1,25 @@
 `include "my_cpu.vh"
 module ID_Unit (
-    input  wire                         clk,
-    input  wire                         reset,
-    input  wire                         IF_to_ID_Valid,
-    input  wire                         EX_Allow_in,
-    input  wire [default_Dest_Size-1:0] EX_dest,
-    input  wire [default_Dest_Size-1:0] ME_dest,
-    input  wire [default_Dest_Size-1:0] WB_dest,
-    output wire                         ID_Allow_in,
-    output wire                         ID_to_EX_Valid,
-    output wire [ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
+    input  wire                          clk,
+    input  wire                          reset,
+    input  wire                          IF_to_ID_Valid,
+    input  wire                          EX_Allow_in,
+    input  wire [`default_Dest_Size-1:0] EX_dest,
+    input  wire [`default_Dest_Size-1:0] ME_dest,
+    input  wire [`default_Dest_Size-1:0] WB_dest,
+    output wire                          ID_Allow_in,
+    output wire                          ID_to_EX_Valid,
+    output wire [`ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
 
-    input  wire [IF_to_ID_Bus_Size-1:0] IF_to_ID_Bus,
-    input  wire [WB_to_RF_Bus_Size-1:0] WB_to_RF_Bus,
-    output wire [br_bus_Size-1:0]       br_bus,
+    input  wire [`IF_to_ID_Bus_Size-1:0] IF_to_ID_Bus,
+    input  wire [`WB_to_RF_Bus_Size-1:0] WB_to_RF_Bus,
+    output wire [`br_bus_Size-1:0]       br_bus,
 
-    input  wire                         EX_to_ID_Ld_op,
+    input  wire                          EX_to_ID_Ld_op,
 
-    input  wire [default_Data_Size-1:0] EX_Forward_Res,
-    input  wire [default_Data_Size-1:0] ME_Forward_Res,
-    input  wire [default_Data_Size-1:0] WB_Forward_Res
+    input  wire [`default_Data_Size-1:0] EX_Forward_Res,
+    input  wire [`default_Data_Size-1:0] ME_Forward_Res,
+    input  wire [`default_Data_Size-1:0] WB_Forward_Res
 );
 
 reg [31:0] pc;
@@ -60,7 +60,7 @@ end
 wire        br_taken;
 wire [31:0] br_target;
 
-wire [alu_op_Size-1:0] alu_op;
+wire [`alu_op_Size-1:0] alu_op;
 wire        load_op;
 wire        src1_is_pc;
 wire        src2_is_imm;

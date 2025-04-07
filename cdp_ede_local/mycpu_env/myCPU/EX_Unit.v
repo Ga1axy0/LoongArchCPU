@@ -1,21 +1,21 @@
 `include "my_cpu.vh"
 module EX_Unit (
-    input  wire                         clk,
-    input  wire                         reset,
-    input  wire                         ID_to_EX_Valid,
-    input  wire [ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
-    output wire [default_Data_Size:0]   alu_result,
-    output wire                         EX_Allow_in,
-    output wire                         EX_to_ME_Valid,
-    input  wire                         ME_Allow_in,
-    output wire [EX_to_ME_Bus_Size-1:0] EX_to_ME_Bus,
-    output wire                         data_sram_en,
-    output wire [3:0]                   data_sram_we,
-    output wire [31:0]                  data_sram_addr,
-    output wire [31:0]                  data_sram_wdata,
-    output wire [default_Dest_Size-1:0] EX_dest,
-    output wire [default_Data_Size-1:0] EX_Forward_Res,
-    output wire                         EX_to_ID_Ld_op
+    input  wire                          clk,
+    input  wire                          reset,
+    input  wire                          ID_to_EX_Valid,
+    input  wire [`ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
+    output wire [`default_Data_Size:0]   alu_result,
+    output wire                          EX_Allow_in,
+    output wire                          EX_to_ME_Valid,
+    input  wire                          ME_Allow_in,
+    output wire [`EX_to_ME_Bus_Size-1:0] EX_to_ME_Bus,
+    output wire                          data_sram_en,
+    output wire [3:0]                    data_sram_we,
+    output wire [31:0]                   data_sram_addr,
+    output wire [31:0]                   data_sram_wdata,
+    output wire [`default_Dest_Size-1:0] EX_dest,
+    output wire [`default_Data_Size-1:0] EX_Forward_Res,
+    output wire                          EX_to_ID_Ld_op
 );
 
 reg                   inst_ld_w;
