@@ -26,6 +26,7 @@ always @(posedge clk) reset <= ~resetn;
 wire         ID_Allow_in;
 wire         IF_Allow_in;
 wire         EX_Allow_in;
+wire         ME_Allow_in;
 wire         WB_Allow_in;
 
 wire         IF_to_ID_Valid;
@@ -35,22 +36,22 @@ wire         ME_to_WB_Valid;
 
 wire         EX_to_ID_Ld_op;     
 
-wire [default_Dest_Size-1:0]   EX_dest;
-wire [default_Dest_Size-1:0]   ME_dest;
-wire [default_Dest_Size-1:0]   WB_dest;
+wire [`default_Dest_Size-1:0]   EX_dest;
+wire [`default_Dest_Size-1:0]   ME_dest;
+wire [`default_Dest_Size-1:0]   WB_dest;
 
-wire [br_bus_Size-1      :0]  br_bus;
-wire [IF_to_ID_Bus_Size-1:0]  IF_to_ID_Bus;
-wire [ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus;
-wire [EX_to_ME_Bus_Size-1:0]  EX_to_ME_Bus;
-wire [ME_to_WB_Bus_Size-1:0]  ME_to_WB_Bus;
-wire [WB_to_RF_Bus_Size-1:0]  WB_to_RF_Bus;
+wire [`br_bus_Size-1      :0]  br_bus;
+wire [`IF_to_ID_Bus_Size-1:0]  IF_to_ID_Bus;
+wire [`ID_to_EX_Bus_Size-1:0]  ID_to_EX_Bus;
+wire [`EX_to_ME_Bus_Size-1:0]  EX_to_ME_Bus;
+wire [`ME_to_WB_Bus_Size-1:0]  ME_to_WB_Bus;
+wire [`WB_to_RF_Bus_Size-1:0]  WB_to_RF_Bus;
 
-wire [default_Data_Size-1:0]  alu_result;
+wire [`default_Data_Size-1:0]  alu_result;
 
-wire [default_Data_Size-1:0]  EX_Forward_Res;
-wire [default_Data_Size-1:0]  ME_Forward_Res;
-wire [default_Data_Size-1:0]  WB_Forward_Res;
+wire [`default_Data_Size-1:0]  EX_Forward_Res;
+wire [`default_Data_Size-1:0]  ME_Forward_Res;
+wire [`default_Data_Size-1:0]  WB_Forward_Res;
 
 IF_Unit IF(
     .clk(clk),

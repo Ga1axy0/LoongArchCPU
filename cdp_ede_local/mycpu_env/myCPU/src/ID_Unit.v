@@ -345,6 +345,7 @@ assign rkd_value = rd_eq ? ((EX_dest == rd) ? EX_Forward_Res :
                             rf_rdata2;
 
 wire rj_gt_rd;
+wire rj_eq_rd;
 
 assign rj_eq_rd = (rj_value == rkd_value);
 assign rj_gt_rd = src_is_signed ? ($signed(rj_value) >= $signed(rkd_value)) : ($unsigned(rj_value) >= $unsigned(rkd_value));

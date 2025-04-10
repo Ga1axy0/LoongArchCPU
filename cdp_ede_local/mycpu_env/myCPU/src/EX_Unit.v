@@ -4,7 +4,7 @@ module EX_Unit (
     input  wire                          reset,
     input  wire                          ID_to_EX_Valid,
     input  wire [`ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
-    output wire [`default_Data_Size:0]   alu_result,
+    output wire [`default_Data_Size-1:0]   alu_result,
     output wire                          EX_Allow_in,
     output wire                          EX_to_ME_Valid,
     input  wire                          ME_Allow_in,
@@ -19,7 +19,7 @@ module EX_Unit (
 );
 
 reg                   inst_ld_w;
-reg [alu_op_Size-1:0] alu_op;
+reg [`alu_op_Size-1:0] alu_op;
 reg [31:0]            pc;
 reg [31:0]            imm;
 reg [31:0]            rj_value;
@@ -76,7 +76,6 @@ end
 
 wire [31:0] alu_src1;
 wire [31:0] alu_src2;
-wire [31:0] alu_result;
 
 assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
 assign alu_src2 = src2_is_imm ? imm : rkd_value;
