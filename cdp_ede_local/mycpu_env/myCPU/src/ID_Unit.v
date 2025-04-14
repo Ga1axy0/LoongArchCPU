@@ -326,6 +326,7 @@ assign {rf_we, rf_waddr, rf_wdata} = WB_to_RF_Bus;
 
 regfile u_regfile(
     .clk    (clk      ),
+    .reset  (reset    ),
     .raddr1 (rf_raddr1),
     .rdata1 (rf_rdata1),
     .raddr2 (rf_raddr2),

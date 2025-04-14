@@ -14,12 +14,13 @@ module regfile(
 );
 reg [31:0] rf[31:0];
 
+integer i;
+
 //WRITE
 always @(posedge clk) begin
     if (reset) begin
-        integer i;
         for (i = 0; i < 32; i = i + 1) begin
-            rf[i] <= 32'b0;
+            rf[i] <= 32'd0;
         end
     end
     if (we) rf[waddr] <= wdata;
