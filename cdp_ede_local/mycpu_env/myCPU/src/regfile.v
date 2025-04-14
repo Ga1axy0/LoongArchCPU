@@ -1,5 +1,6 @@
 module regfile(
     input  wire        clk,
+    input  wire        reset,
     // READ PORT 1
     input  wire [ 4:0] raddr1,
     output wire [31:0] rdata1,
@@ -15,6 +16,12 @@ reg [31:0] rf[31:0];
 
 //WRITE
 always @(posedge clk) begin
+    if (reset) begin
+        integer i;
+        for (i = 0; i < 32; i = i + 1) begin
+            rf[i] <= 32'b0;
+        end
+    end
     if (we) rf[waddr] <= wdata;
 end
 
