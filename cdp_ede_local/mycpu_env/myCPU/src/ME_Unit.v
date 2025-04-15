@@ -7,14 +7,20 @@ module ME_Unit (
     output wire                         ME_Allow_in,
     input  wire [31:0]                  data_sram_rdata,
     input  wire [`EX_to_ME_Bus_Size-1:0] EX_to_ME_Bus,
-    output wire                         ME_to_WB_Valid,
+    output wire                          ME_to_WB_Valid,
     output wire [`ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
     output wire [`default_Dest_Size-1:0] ME_dest,
-    output wire [`default_Data_Size-1:0] ME_Forward_Res
+    output wire [`default_Data_Size-1:0] ME_Forward_Res,
+
+    input  wire                          excp_flush,
+    input  wire                          ertn_flush
 );
 
 wire       ME_ReadyGO;
 reg        ME_Valid;
+wire       flush_flag;
+
+assign     flush_flag = excp_flush | ertn_flush;
 
 assign ME_ReadyGO = 1'b1;
 assign ME_Allow_in = !ME_Valid || ME_ReadyGO && WB_Allow_in;
@@ -24,16 +30,18 @@ assign ME_dest = dest & {5{ME_Valid}} & {5{gr_we}};
 
 reg [31:0] pc;
 reg        mem_we;
-reg [31:0] alu_result;
+reg [31:0] EX_result;
 reg [31:0] rkd_value;
 reg        res_from_mem;
 reg        gr_we;
 reg [4:0]  dest;
 reg [4:0]  dest_flag;
+reg        inst_ertn;
+reg        inst_syscall;
 
 always @(posedge clk) begin
 
-    if(reset)begin
+    if(reset | flush_flag)begin
         ME_Valid <= 1'b0;
     end else if (ME_Allow_in) begin
         ME_Valid <= EX_to_ME_Valid;
@@ -41,9 +49,11 @@ always @(posedge clk) begin
 
     if(EX_to_ME_Valid && ME_Allow_in)begin
         {
+            inst_syscall,
+            inst_ertn,
             dest_flag,
             pc,             //[70:39]
-            alu_result,     //[38:7]    
+            EX_result,     //[38:7]    
             res_from_mem,   //[6:6]
             gr_we,          //[5:5]
             dest            //[4:0]
@@ -88,11 +98,13 @@ assign mem_result   = (dest_flag == 5'b11000) ? {{24{data_sram_rdata[7]}},data_s
 
                       /*dest_flag == 5'b00000*/ data_sram_rdata;
 
-assign final_result = res_from_mem ? mem_result : alu_result;
+assign final_result = res_from_mem ? mem_result : EX_result;
 
 
 
 assign ME_to_WB_Bus = {
+            inst_syscall,
+            inst_ertn,   //[70:70]
             pc,          //[69:38]   
             gr_we,       //[37:37]
             dest,        //[36:32]

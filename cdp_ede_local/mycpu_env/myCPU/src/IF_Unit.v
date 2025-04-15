@@ -11,7 +11,11 @@ module IF_Unit (
     output wire [31:0]                   inst_sram_wdata,
     input  wire [31:0]                   inst_sram_rdata,
     output wire [`IF_to_ID_Bus_Size-1:0] IF_to_ID_Bus,
-    output wire                          IF_to_ID_Valid
+    output wire                          IF_to_ID_Valid,
+
+    input  wire                          excp_flush,
+    input  wire                          ertn_flush,
+    input  wire [31:0]                   ex_entry
 );
 
 wire        br_taken;
@@ -26,6 +30,9 @@ reg         IF_Valid;
 wire        IF_Allow_in;
 wire        IF_ReadyGO;
 wire        to_IF_Valid;
+wire        flush_flag;
+
+assign flush_flag = ertn_flush | excp_flush;
 
 assign IF_ReadyGO = ~br_taken;
 assign IF_Allow_in = !IF_Valid || IF_ReadyGO && ID_Allow_in;
@@ -33,7 +40,8 @@ assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 
 assign to_IF_Valid = ~reset;
 assign seq_pc                 = pc + 3'h4;
-assign nextpc                 = br_taken ? br_target : seq_pc;
+assign nextpc                 = excp_flush ? ex_entry  :
+                                br_taken   ? br_target : seq_pc;
 
 assign {br_taken , br_target , br_stall} = br_bus;
 
@@ -48,7 +56,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if(reset)begin
+    if(reset | flush_flag)begin
         IF_Valid <= 1'b0;
     end else if(IF_Allow_in)begin
         IF_Valid <= to_IF_Valid;

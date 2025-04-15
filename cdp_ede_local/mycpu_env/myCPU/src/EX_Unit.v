@@ -4,7 +4,6 @@ module EX_Unit (
     input  wire                          reset,
     input  wire                          ID_to_EX_Valid,
     input  wire [`ID_to_EX_Bus_Size-1:0] ID_to_EX_Bus,
-    output wire [`default_Data_Size-1:0]   alu_result,
     output wire                          EX_Allow_in,
     output wire                          EX_to_ME_Valid,
     input  wire                          ME_Allow_in,
@@ -15,9 +14,19 @@ module EX_Unit (
     output wire [31:0]                   data_sram_wdata,
     output wire [`default_Dest_Size-1:0] EX_dest,
     output wire [`default_Data_Size-1:0] EX_Forward_Res,
-    output wire                          EX_to_ID_Ld_op
+    output wire                          EX_to_ID_Ld_op,
+    output wire                          csr_re,
+    input  wire [31:0]                   csr_rvalue,
+    output wire                          csr_we,
+    output wire [31:0]                   csr_wvalue,
+    output wire [13:0]                   csr_num,
+
+    input  wire                          excp_flush,
+    input  wire                          ertn_flush
 );
 
+reg                   inst_syscall;
+reg                   inst_ertn;
 reg                   inst_ld_w;
 reg [`alu_op_Size-1:0] alu_op;
 reg [31:0]            pc;
@@ -34,9 +43,17 @@ reg                   EX_Valid;
 reg                   src_is_signed;
 reg                   mem_is_byte;
 reg                   mem_is_half;
+reg                   res_from_csr;
+reg [13:0]            EX_csr_num;
+reg                   EX_csr_wmask_en;
+reg                   EX_csr_we;
+wire [31:0]           EX_csr_wmask;
 
 wire                  EX_ReadyGo;
 wire                  divres_valid;
+wire                  flush_flag;
+
+assign flush_flag = excp_flush | ertn_flush;
 
 assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
@@ -46,7 +63,7 @@ assign EX_to_ID_Ld_op = inst_ld_w;
 
 always @(posedge clk) begin
 
-    if(reset)begin
+    if(reset | flush_flag)begin
         EX_Valid <= 1'b0;
     end else if(EX_Allow_in) begin
         EX_Valid <= ID_to_EX_Valid;
@@ -54,6 +71,12 @@ always @(posedge clk) begin
 
     if(EX_Allow_in && ID_to_EX_Valid)begin
         {
+            inst_syscall,
+            inst_ertn,
+            EX_csr_wmask_en,
+            EX_csr_we,
+            EX_csr_num,
+            res_from_csr,
             mem_is_byte,
             mem_is_half,
             src_is_signed,
@@ -74,8 +97,16 @@ always @(posedge clk) begin
 end
 
 
+assign csr_re       = res_from_csr;
+assign csr_we       = EX_csr_we;
+assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
+assign csr_wvalue   = rkd_value & EX_csr_wmask;
+assign csr_num      = EX_csr_num;
+
 wire [31:0] alu_src1;
 wire [31:0] alu_src2;
+wire [31:0] alu_result;
+wire [31:0] final_result;
 
 assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
 assign alu_src2 = src2_is_imm ? imm : rkd_value;
@@ -121,17 +152,22 @@ assign dest_flag = {src_is_signed, mem_is_byte, mem_is_half, data_sram_offset};
     x0000 => [31:0]
 */
 
+
+assign final_result = res_from_csr ? csr_rvalue : alu_result;
+
 assign EX_dest         = dest & {5{EX_Valid}} & {5{gr_we}};
 
 assign EX_to_ME_Bus = {
+            inst_syscall,
+            inst_ertn,      //[76:76]
             dest_flag,      //[75:71]
             pc,             //[70:39]
-            alu_result,     //[38:7]    
+            final_result,   //[38:7]    
             res_from_mem,   //[6:6]
             gr_we,          //[5:5]
             dest            //[4:0]
         };
 
-assign EX_Forward_Res = alu_result;
+assign EX_Forward_Res = final_result;
 
 endmodule

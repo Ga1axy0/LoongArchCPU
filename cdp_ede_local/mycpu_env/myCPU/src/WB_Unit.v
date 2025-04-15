@@ -6,20 +6,25 @@ module WB_Unit (
     input  wire                         ME_to_WB_Valid,
     input  wire [`ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
 
-    output wire [31:0]                  debug_wb_pc,
+    output wire [31:0]                  debug_wb_pc,// to debug and csr
     output wire [ 3:0]                  debug_wb_rf_we,
     output wire [ 4:0]                  debug_wb_rf_wnum,
     output wire [31:0]                  debug_wb_rf_wdata,
 
     output wire [`WB_to_RF_Bus_Size-1:0] WB_to_RF_Bus,
     output wire [`default_Dest_Size-1:0] WB_dest,
-    output wire [`default_Data_Size-1:0] WB_Forward_Res
+    output wire [`default_Data_Size-1:0] WB_Forward_Res,
+
+    output wire                          ertn_flush,
+    output wire                          excp_flush
     );
 
 reg [31:0]  pc;
 reg         gr_we;
 reg [4:0]   dest;
 reg [31:0]  final_result;
+reg         inst_ertn;
+reg         inst_syscall;
 
 wire         WB_ReadyGo;
 reg          WB_Valid;
@@ -40,6 +45,8 @@ always @(posedge clk) begin
 
     if (ME_to_WB_Valid && WB_Allow_in) begin
         {
+            inst_syscall,
+            inst_ertn,
             pc,          //[69:38]   
             gr_we,       //[37:37]
             dest,        //[36:32]
@@ -47,6 +54,8 @@ always @(posedge clk) begin
         } <= ME_to_WB_Bus;
     end
 end
+
+assign ertn_flush = inst_ertn & WB_Valid;
 
 assign rf_we    = gr_we && WB_Valid;
 assign rf_waddr = dest;
@@ -56,6 +65,8 @@ assign debug_wb_pc       = pc;
 assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = dest;
 assign debug_wb_rf_wdata = final_result;
+
+assign excp_flush = WB_Valid & inst_syscall;
 
 assign WB_dest = dest & {5{rf_we}};
 

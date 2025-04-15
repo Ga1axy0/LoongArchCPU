@@ -52,6 +52,21 @@ wire [`default_Data_Size-1:0]  EX_Forward_Res;
 wire [`default_Data_Size-1:0]  ME_Forward_Res;
 wire [`default_Data_Size-1:0]  WB_Forward_Res;
 
+wire [ 7:0] hw_int_in;
+wire        ipi_int_in;
+wire [13:0] csr_num;
+wire        csr_re;
+wire [31:0] csr_rdata;
+wire        csr_we;
+wire [31:0] csr_wdata;
+wire [31:0] ex_entry;
+wire        has_int;
+wire        ertn_flush;
+wire        excp_flush;
+wire [ 5:0] wb_ecode;
+wire [ 8:0] wb_esubcode;
+
+
 IF_Unit IF(
     .clk(clk),
     .reset(reset),
@@ -63,7 +78,10 @@ IF_Unit IF(
     .inst_sram_rdata(inst_sram_rdata),
     .IF_to_ID_Bus(IF_to_ID_Bus),
     .IF_to_ID_Valid(IF_to_ID_Valid),
-    .ID_Allow_in(ID_Allow_in)
+    .ID_Allow_in(ID_Allow_in),
+    .ex_entry(ex_entry),
+    .excp_flush(excp_flush),
+    .ertn_flush(ertn_flush)
 );
 
 ID_Unit ID(
@@ -83,7 +101,9 @@ ID_Unit ID(
     .EX_Forward_Res(EX_Forward_Res),
     .ME_Forward_Res(ME_Forward_Res),
     .WB_Forward_Res(WB_Forward_Res),
-    .EX_to_ID_Ld_op(EX_to_ID_Ld_op)
+    .EX_to_ID_Ld_op(EX_to_ID_Ld_op),
+    .excp_flush(excp_flush),
+    .ertn_flush(ertn_flush)
 );
 
 EX_Unit EX(
@@ -101,7 +121,15 @@ EX_Unit EX(
     .EX_Allow_in(EX_Allow_in),
     .ME_Allow_in(ME_Allow_in),
     .EX_Forward_Res(EX_Forward_Res),
-    .EX_to_ID_Ld_op(EX_to_ID_Ld_op)
+    .EX_to_ID_Ld_op(EX_to_ID_Ld_op),
+    .excp_flush(excp_flush),
+    .ertn_flush(ertn_flush),
+    .csr_re(csr_re),
+    .csr_rvalue(csr_rdata),
+    .csr_we(csr_we),
+    .csr_wvalue(csr_wdata),
+    .csr_num(csr_num)
+    
 );
 
 ME_Unit ME(
@@ -115,7 +143,9 @@ ME_Unit ME(
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .ME_Allow_in(ME_Allow_in),
     .WB_Allow_in(WB_Allow_in),
-    .ME_Forward_Res(ME_Forward_Res)
+    .ME_Forward_Res(ME_Forward_Res),
+    .excp_flush(excp_flush),
+    .ertn_flush(ertn_flush)
 );
 
 WB_Unit WB(
@@ -130,7 +160,28 @@ WB_Unit WB(
     .WB_dest(WB_dest),
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .WB_Allow_in(WB_Allow_in),
-    .WB_Forward_Res(WB_Forward_Res)
+    .WB_Forward_Res(WB_Forward_Res),
+    .excp_flush(excp_flush),
+    .ertn_flush(ertn_flush)
+);
+
+CSR_Unit CSR(
+    .clk         (clk         ),
+    .reset       (reset       ),
+    .hw_int_in   (hw_int_in   ),
+    .ipi_int_in  (ipi_int_in  ),
+    .csr_num     (csr_num     ),
+    .csr_re      (csr_re      ),
+    .csr_rdata   (csr_rdata   ),
+    .csr_we      (csr_we      ),
+    .csr_wdata   (csr_wdata   ),
+    .ex_entry    (ex_entry    ),
+    .has_int     (has_int     ),
+    .ertn_flush  (ertn_flush  ),
+    .wb_ex       (excp_flush  ),
+    .wb_ecode    (wb_ecode    ),
+    .wb_esubcode (wb_esubcode ),
+    .wb_pc       (debug_wb_pc )
 );
 
 
