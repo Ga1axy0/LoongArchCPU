@@ -47,7 +47,6 @@ wire [`EX_to_ME_Bus_Size-1:0]  EX_to_ME_Bus;
 wire [`ME_to_WB_Bus_Size-1:0]  ME_to_WB_Bus;
 wire [`WB_to_RF_Bus_Size-1:0]  WB_to_RF_Bus;
 
-wire [`default_Data_Size-1:0]  alu_result;
 
 wire [`default_Data_Size-1:0]  EX_Forward_Res;
 wire [`default_Data_Size-1:0]  ME_Forward_Res;
@@ -91,7 +90,6 @@ EX_Unit EX(
     .clk(clk),
     .reset(reset),
     .ID_to_EX_Bus(ID_to_EX_Bus),
-    .alu_result(alu_result),
     .data_sram_en(data_sram_en),
     .data_sram_addr(data_sram_addr),
     .data_sram_wdata(data_sram_wdata),
