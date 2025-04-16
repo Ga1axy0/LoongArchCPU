@@ -168,7 +168,7 @@ wire        inst_st_h;
 
 wire        inst_csrrd;
 wire        inst_csrwr;
-wire        inst_csrchg;
+wire        inst_csrxchg;
 wire        inst_ertn;
 
 wire        inst_syscall;
@@ -276,7 +276,7 @@ assign inst_bgeu      = op_31_26_d[6'h1b];
 
 assign inst_csrrd     = op_31_26_d[6'h01] & op_25_24_d[2'h0] & op_9_5_d[5'h00];
 assign inst_csrwr     = op_31_26_d[6'h01] & op_25_24_d[2'h0] & op_9_5_d[5'h01];
-assign inst_csrchg    = op_31_26_d[6'h01] & op_25_24_d[2'h0] & ~(op_9_5_d[5'h00] & op_9_5_d[5'h01]); 
+assign inst_csrxchg   = op_31_26_d[6'h01] & op_25_24_d[2'h0] & ~(op_9_5_d[5'h00] | op_9_5_d[5'h01]); 
 assign inst_ertn      = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & op_14_10_d[5'h0e] & op_9_5_d[5'h00] & op_4_0_d[5'h00  ];
 
 assign inst_syscall   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h16];
@@ -330,7 +330,7 @@ assign src_reg_is_rj = ~(inst_b | inst_bl | inst_lu12i_w | inst_csrrd | inst_csr
 assign src_reg_is_rk = ~(inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | 
                          inst_b | inst_bl | inst_beq | inst_bne | inst_lu12i_w | inst_slti | inst_sltui | inst_andi | 
                          inst_ori | inst_xori | inst_st_b | inst_st_h | inst_blt | inst_bltu | inst_bge | inst_bgeu |
-                         inst_csrrd | inst_csrwr | inst_csrchg);
+                         inst_csrrd | inst_csrwr | inst_csrxchg);
 
 assign rd_eq = src_reg_is_rd && rd != 5'b0 && ((rd == EX_dest) || (rd == ME_dest) || (rd == WB_dest));
 assign rj_eq = src_reg_is_rj && rj != 5'b0 && ((rj == EX_dest) || (rj == ME_dest) || (rj == WB_dest));
@@ -424,9 +424,9 @@ assign br_target = (inst_beq || inst_bne || inst_bl || inst_b || inst_blt || ins
 assign br_bus = {br_taken , br_target, stall};
 
 
-assign csr_wmask_en = inst_csrchg;
-assign csr_we       = inst_csrwr | inst_csrchg;
-assign res_from_csr = inst_csrrd;
+assign csr_wmask_en = inst_csrxchg;
+assign csr_we       = inst_csrwr | inst_csrxchg;
+assign res_from_csr = inst_csrrd | inst_csrxchg;
 
 assign ID_to_EX_Bus = {
                        inst_syscall,    //[179:179]

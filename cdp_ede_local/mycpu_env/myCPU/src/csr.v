@@ -120,6 +120,7 @@ assign has_int = ((csr_estat[`IS] & csr_ecfg[`LIE]) != 13'b0) && (csr_crmd[`IE] 
 
 assign ex_entry = csr_eentry;
 
+
 //CRMD
 always @(posedge clk) begin
     if (reset) begin
@@ -129,6 +130,7 @@ always @(posedge clk) begin
         csr_crmd[`PG]   <= 1'b0;
         csr_crmd[`DATF] <= 2'b00;
         csr_crmd[`DATM] <= 2'b00;
+        csr_crmd[31:9]  <= 23'd0;
     end else if (wb_ex) begin
         csr_crmd[`PLV] <= 2'b0;
         csr_crmd[`IE]  <= 1'b0;
