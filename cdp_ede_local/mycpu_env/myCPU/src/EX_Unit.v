@@ -15,6 +15,7 @@ module EX_Unit (
     output wire [`default_Dest_Size-1:0] EX_dest,
     output wire [`default_Data_Size-1:0] EX_Forward_Res,
     output wire                          EX_to_ID_Ld_op,
+    output wire                          EX_to_ID_Sys_op,
     output wire                          csr_re,
     input  wire [31:0]                   csr_rvalue,
     output wire                          csr_we,
@@ -59,7 +60,8 @@ assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
-assign EX_to_ID_Ld_op = inst_ld_w;
+assign EX_to_ID_Ld_op  = inst_ld_w;
+assign EX_to_ID_Sys_op = inst_syscall & EX_Valid;
 
 always @(posedge clk) begin
 

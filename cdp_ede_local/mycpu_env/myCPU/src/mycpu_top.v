@@ -34,7 +34,10 @@ wire         ID_to_EX_Valid;
 wire         EX_to_ME_Valid;
 wire         ME_to_WB_Valid;
 
-wire         EX_to_ID_Ld_op;     
+wire         EX_to_ID_Ld_op; 
+wire         EX_to_ID_Sys_op;
+wire         ME_to_ID_Sys_op;
+wire         WB_to_ID_Sys_op;    
 
 wire [`default_Dest_Size-1:0]   EX_dest;
 wire [`default_Dest_Size-1:0]   ME_dest;
@@ -102,6 +105,9 @@ ID_Unit ID(
     .ME_Forward_Res(ME_Forward_Res),
     .WB_Forward_Res(WB_Forward_Res),
     .EX_to_ID_Ld_op(EX_to_ID_Ld_op),
+    .EX_to_ID_Sys_op(EX_to_ID_Sys_op),
+    .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
+    .WB_to_ID_Sys_op(WB_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush)
 );
@@ -122,6 +128,7 @@ EX_Unit EX(
     .ME_Allow_in(ME_Allow_in),
     .EX_Forward_Res(EX_Forward_Res),
     .EX_to_ID_Ld_op(EX_to_ID_Ld_op),
+    .EX_to_ID_Sys_op(EX_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
     .csr_re(csr_re),
@@ -144,6 +151,7 @@ ME_Unit ME(
     .ME_Allow_in(ME_Allow_in),
     .WB_Allow_in(WB_Allow_in),
     .ME_Forward_Res(ME_Forward_Res),
+    .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush)
 );
@@ -161,6 +169,7 @@ WB_Unit WB(
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .WB_Allow_in(WB_Allow_in),
     .WB_Forward_Res(WB_Forward_Res),
+    .WB_to_ID_Sys_op(WB_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush)
 );

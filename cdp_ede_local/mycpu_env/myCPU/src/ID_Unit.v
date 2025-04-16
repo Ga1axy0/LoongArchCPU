@@ -16,6 +16,9 @@ module ID_Unit (
     output wire [`br_bus_Size-1:0]        br_bus,
 
     input  wire                           EX_to_ID_Ld_op,
+    input  wire                           EX_to_ID_Sys_op,
+    input  wire                           ME_to_ID_Sys_op,
+    input  wire                           WB_to_ID_Sys_op,
 
     input  wire [`default_Data_Size-1:0]  EX_Forward_Res,
     input  wire [`default_Data_Size-1:0]  ME_Forward_Res,
@@ -37,12 +40,15 @@ wire        rj_eq;
 wire        rk_eq;
 wire        stall;
 wire        ld_stall;
+wire        sys_stall;
+
+assign      sys_stall = EX_to_ID_Sys_op | ME_to_ID_Sys_op | WB_to_ID_Sys_op;
 
 assign      ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq) || 
                                           ((rd == EX_dest) & rd_eq) || 
                                           ((rk == EX_dest) & rk_eq));
 
-assign      ID_ReadyGo = ID_Valid & ~ld_stall;
+assign      ID_ReadyGo = ID_Valid & ~ld_stall &  ~sys_stall;
 assign      ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
 assign      ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 

@@ -11,6 +11,7 @@ module ME_Unit (
     output wire [`ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
     output wire [`default_Dest_Size-1:0] ME_dest,
     output wire [`default_Data_Size-1:0] ME_Forward_Res,
+    output wire                          ME_to_ID_Sys_op,
 
     input  wire                          excp_flush,
     input  wire                          ertn_flush
@@ -61,6 +62,7 @@ always @(posedge clk) begin
     end
 end
 
+assign ME_to_ID_Sys_op = inst_syscall & ME_Valid;
 
 wire [31:0] mem_result;
 wire [31:0] final_result;

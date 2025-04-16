@@ -14,6 +14,7 @@ module WB_Unit (
     output wire [`WB_to_RF_Bus_Size-1:0] WB_to_RF_Bus,
     output wire [`default_Dest_Size-1:0] WB_dest,
     output wire [`default_Data_Size-1:0] WB_Forward_Res,
+    output wire                          WB_to_ID_Sys_op,
 
     output wire                          ertn_flush,
     output wire                          excp_flush
@@ -54,6 +55,8 @@ always @(posedge clk) begin
         } <= ME_to_WB_Bus;
     end
 end
+
+assign WB_to_ID_Sys_op = inst_syscall & WB_Valid;
 
 assign ertn_flush = inst_ertn & WB_Valid;
 
