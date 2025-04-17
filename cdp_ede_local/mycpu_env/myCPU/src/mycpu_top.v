@@ -69,6 +69,8 @@ wire        excp_flush;
 wire [ 5:0] wb_ecode;
 wire [ 8:0] wb_esubcode;
 
+assign hw_int_in  = 8'd0;
+assign ipi_int_in = 1'd0;
 
 IF_Unit IF(
     .clk(clk),

@@ -56,7 +56,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if(reset | flush_flag)begin
+    if(reset)begin
         IF_Valid <= 1'b0;
     end else if(IF_Allow_in)begin
         IF_Valid <= to_IF_Valid;

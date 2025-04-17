@@ -38,11 +38,11 @@ wire       flush_flag;
 wire        rd_eq;
 wire        rj_eq;
 wire        rk_eq;
-wire        stall;
+wire        stall;      
 wire        ld_stall;
 wire        sys_stall;
 
-assign      sys_stall = EX_to_ID_Sys_op | ME_to_ID_Sys_op | WB_to_ID_Sys_op;
+assign      sys_stall = EX_to_ID_Sys_op | ME_to_ID_Sys_op;
 
 assign      ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq) || 
                                           ((rd == EX_dest) & rd_eq) || 
