@@ -1,4 +1,5 @@
 `include "my_cpu.vh"
+`include "csr.vh"
 module WB_Unit (
     input  wire                         clk,
     input  wire                         reset,
@@ -17,7 +18,9 @@ module WB_Unit (
     output wire                          WB_to_ID_Sys_op,
 
     output wire                          ertn_flush,
-    output wire                          excp_flush
+    output wire                          excp_flush,
+    output wire [ 5:0]                   wb_ecode,
+    output wire [ 8:0]                   wb_esubcode
     );
 
 reg [31:0]  pc;
@@ -59,6 +62,8 @@ end
 assign WB_to_ID_Sys_op = inst_syscall & WB_Valid;
 
 assign ertn_flush = inst_ertn & WB_Valid;
+
+assign {wb_ecode , wb_esubcode} = inst_syscall ? {`ECODE_SYS,9'b0} : 15'b0;
 
 assign rf_we    = gr_we && WB_Valid;
 assign rf_waddr = dest;
