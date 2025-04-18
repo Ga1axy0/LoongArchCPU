@@ -63,6 +63,7 @@ wire [31:0] csr_rdata;
 wire        csr_we;
 wire [31:0] csr_wdata;
 wire [31:0] ex_entry;
+wire [31:0] er_entry;
 wire        has_int;
 wire        ertn_flush;
 wire        excp_flush;
@@ -86,7 +87,8 @@ IF_Unit IF(
     .ID_Allow_in(ID_Allow_in),
     .ex_entry(ex_entry),
     .excp_flush(excp_flush),
-    .ertn_flush(ertn_flush)
+    .ertn_flush(ertn_flush),
+    .er_entry(er_entry)
 );
 
 ID_Unit ID(
@@ -173,7 +175,9 @@ WB_Unit WB(
     .WB_Forward_Res(WB_Forward_Res),
     .WB_to_ID_Sys_op(WB_to_ID_Sys_op),
     .excp_flush(excp_flush),
-    .ertn_flush(ertn_flush)
+    .ertn_flush(ertn_flush),
+    .wb_ecode(wb_ecode),
+    .wb_esubcode(wb_esubcode)
 );
 
 CSR_Unit CSR(
@@ -187,6 +191,7 @@ CSR_Unit CSR(
     .csr_we      (csr_we      ),
     .csr_wdata   (csr_wdata   ),
     .ex_entry    (ex_entry    ),
+    .er_entry    (er_entry    ),
     .has_int     (has_int     ),
     .ertn_flush  (ertn_flush  ),
     .wb_ex       (excp_flush  ),

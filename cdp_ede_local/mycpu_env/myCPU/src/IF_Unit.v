@@ -15,7 +15,8 @@ module IF_Unit (
 
     input  wire                          excp_flush,
     input  wire                          ertn_flush,
-    input  wire [31:0]                   ex_entry
+    input  wire [31:0]                   ex_entry,
+    input  wire [31:0]                   er_entry          
 );
 
 wire        br_taken;
@@ -41,6 +42,7 @@ assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 assign to_IF_Valid = ~reset;
 assign seq_pc                 = pc + 3'h4;
 assign nextpc                 = excp_flush ? ex_entry  :
+                                ertn_flush ? er_entry  :
                                 br_taken   ? br_target : seq_pc;
 
 assign {br_taken , br_target , br_stall} = br_bus;

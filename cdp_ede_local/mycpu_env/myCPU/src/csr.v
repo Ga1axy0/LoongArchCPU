@@ -21,6 +21,7 @@ module CSR_Unit (
 
     //Pre-IF
     output wire [31:0] ex_entry,
+    output wire [31:0] er_entry,
     //ID
     output wire        has_int,
 
@@ -120,6 +121,8 @@ assign has_int = ((csr_estat[`IS] & csr_ecfg[`LIE]) != 13'b0) && (csr_crmd[`IE] 
 
 assign ex_entry = csr_eentry;
 
+assign er_entry = csr_era;
+
 
 //CRMD
 always @(posedge clk) begin
@@ -173,7 +176,9 @@ end
 //ESTAT
 always @(posedge clk) begin
     if (reset) begin
-        csr_estat[`IS] <= 13'b0;
+        csr_estat[`IS]   <= 13'b0;
+        csr_estat[15:13] <= 3'b0;
+        csr_estat[31]    <= 1'b0;
     end else if (estat_wen) begin
         csr_estat[`IS_1_0] <= csr_wdata[`IS_1_0];
     end
