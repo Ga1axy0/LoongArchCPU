@@ -59,7 +59,7 @@ always @(posedge clk) begin
     end
 end
 
-assign WB_to_ID_Sys_op = inst_syscall & WB_Valid;
+assign WB_to_ID_Sys_op = (inst_syscall | inst_ertn) & WB_Valid;
 
 assign ertn_flush = inst_ertn & WB_Valid;
 

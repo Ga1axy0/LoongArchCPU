@@ -331,7 +331,7 @@ assign br_offs = need_si26 ? {{ 4{i26[25]}}, i26[25:0], 2'b0} :
 
 assign jirl_offs = {{14{i16[15]}}, i16[15:0], 2'b0};
 
-assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w | inst_blt | inst_bltu | inst_bge | inst_bgeu | inst_st_b | inst_st_h | inst_csrwr;
+assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w | inst_blt | inst_bltu | inst_bge | inst_bgeu | inst_st_b | inst_st_h | inst_csrwr | inst_csrxchg;
 assign src_reg_is_rj = ~(inst_b | inst_bl | inst_lu12i_w | inst_csrrd | inst_csrwr);
 assign src_reg_is_rk = ~(inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | 
                          inst_b | inst_bl | inst_beq | inst_bne | inst_lu12i_w | inst_slti | inst_sltui | inst_andi | 
@@ -372,7 +372,7 @@ assign res_from_mem  = inst_ld_w | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_
 
 
 assign dst_is_r1     = inst_bl;
-assign gr_we         = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b & ~inst_st_h & ~inst_st_b & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu;
+assign gr_we         = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b & ~inst_st_h & ~inst_st_b & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_ertn;
 assign mem_we        = inst_st_w ? 4'b1111 : 
                        inst_st_b ? 4'b0001 :
                        inst_st_h ? 4'b0011 :
@@ -432,7 +432,7 @@ assign br_bus = {br_taken , br_target, stall};
 
 assign csr_wmask_en = inst_csrxchg;
 assign csr_we       = inst_csrwr | inst_csrxchg;
-assign res_from_csr = inst_csrrd | inst_csrxchg;
+assign res_from_csr = inst_csrrd | inst_csrxchg | inst_csrwr;
 
 assign ID_to_EX_Bus = {
                        inst_syscall,    //[179:179]

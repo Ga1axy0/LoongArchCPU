@@ -62,7 +62,7 @@ always @(posedge clk) begin
     end
 end
 
-assign ME_to_ID_Sys_op = inst_syscall & ME_Valid;
+assign ME_to_ID_Sys_op = (inst_syscall | inst_ertn) & ME_Valid;
 
 wire [31:0] mem_result;
 wire [31:0] final_result;
