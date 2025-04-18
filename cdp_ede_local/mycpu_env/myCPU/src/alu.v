@@ -2,7 +2,8 @@
 module alu(
   input  wire                         clk,
   input  wire                         reset,
-  input  wire [`alu_op_Size-1:0]         alu_op,
+  input  wire                         alu_valid,
+  input  wire [`alu_op_Size-1:0]      alu_op,
   input  wire [31:0]                  alu_src1,
   input  wire [31:0]                  alu_src2,
   input  wire                         src_is_signed,
@@ -68,7 +69,7 @@ wire        div_en;
 wire        udiv_valid;
 wire        div_valid;
 assign      divres_valid = src_is_signed ? div_valid : udiv_valid;
-assign      div_en = op_mod | op_div;
+assign      div_en = (op_mod | op_div) & alu_valid;
 
 // 32-bit adder
 wire [31:0] adder_a;

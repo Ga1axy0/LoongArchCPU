@@ -61,7 +61,7 @@ assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
 assign EX_to_ID_Ld_op  = inst_ld_w;
-assign EX_to_ID_Sys_op = inst_syscall & EX_Valid;
+assign EX_to_ID_Sys_op = (inst_syscall | inst_ertn) & EX_Valid;
 
 always @(posedge clk) begin
 
@@ -102,7 +102,7 @@ end
 assign csr_re       = res_from_csr;
 assign csr_we       = EX_csr_we;
 assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
-assign csr_wvalue   = rkd_value & EX_csr_wmask;
+assign csr_wvalue   = rkd_value & EX_csr_wmask; 
 assign csr_num      = EX_csr_num;
 
 wire [31:0] alu_src1;
@@ -110,12 +110,14 @@ wire [31:0] alu_src2;
 wire [31:0] alu_result;
 wire [31:0] final_result;
 
+
 assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
 assign alu_src2 = src2_is_imm ? imm : rkd_value;
 
 alu u_alu(
     .clk(clk),
     .reset(reset),
+    .alu_valid(EX_Valid),
     .alu_op     (alu_op    ),
     .alu_src1   (alu_src1  ),
     .alu_src2   (alu_src2  ),
