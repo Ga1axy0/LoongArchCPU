@@ -20,7 +20,12 @@ module WB_Unit (
     output wire                          ertn_flush,
     output wire                          excp_flush,
     output wire [ 5:0]                   wb_ecode,
-    output wire [ 8:0]                   wb_esubcode
+    output wire [ 8:0]                   wb_esubcode,
+
+    output wire                          csr_we,
+    output wire [31:0]                   csr_wvalue,
+    output wire [13:0]                   csr_num,
+    output wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus
     );
 
 reg [31:0]  pc;
@@ -29,12 +34,16 @@ reg [4:0]   dest;
 reg [31:0]  final_result;
 reg         inst_ertn;
 reg         inst_syscall;
+reg         WB_csr_we;
+reg [31:0]  WB_csr_wvalue;
+reg [13:0]  WB_csr_num;
 
 wire         WB_ReadyGo;
 reg          WB_Valid;
 wire         rf_we;
 wire [4:0]   rf_waddr;
 wire [31:0]  rf_wdata;
+
 
 assign WB_ReadyGo = 1'b1;
 assign WB_Allow_in = !WB_Valid || WB_ReadyGo;
@@ -49,6 +58,9 @@ always @(posedge clk) begin
 
     if (ME_to_WB_Valid && WB_Allow_in) begin
         {
+            WB_csr_num,        
+            WB_csr_we,       
+            WB_csr_wvalue,    
             inst_syscall,
             inst_ertn,
             pc,          //[69:38]   
@@ -58,6 +70,10 @@ always @(posedge clk) begin
         } <= ME_to_WB_Bus;
     end
 end
+
+assign csr_num = WB_csr_num;
+assign csr_we  = WB_csr_we;
+assign csr_wvalue = WB_csr_wvalue;
 
 assign WB_to_ID_Sys_op = (inst_syscall | inst_ertn) & WB_Valid;
 
@@ -83,6 +99,12 @@ assign WB_to_RF_Bus = {
                         rf_waddr,      //[36:32]
                         rf_wdata       //[31:0]
                     };
+
+assign WB_to_EX_Bus = {
+    WB_csr_num,       
+    WB_csr_we,         
+    WB_csr_wvalue  
+};
 
 assign WB_Forward_Res = final_result;
 

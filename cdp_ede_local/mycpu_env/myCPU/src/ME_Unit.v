@@ -14,7 +14,9 @@ module ME_Unit (
     output wire                          ME_to_ID_Sys_op,
 
     input  wire                          excp_flush,
-    input  wire                          ertn_flush
+    input  wire                          ertn_flush,
+
+    output wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus
 );
 
 wire       ME_ReadyGO;
@@ -39,6 +41,9 @@ reg [4:0]  dest;
 reg [4:0]  dest_flag;
 reg        inst_ertn;
 reg        inst_syscall;
+reg [31:0] ME_csr_wvalue;
+reg [13:0] ME_csr_num;
+reg        ME_csr_we;
 
 always @(posedge clk) begin
 
@@ -50,6 +55,9 @@ always @(posedge clk) begin
 
     if(EX_to_ME_Valid && ME_Allow_in)begin
         {
+            ME_csr_num,        //[124:111]    
+            ME_csr_we,         //[110:110]
+            ME_csr_wvalue,     //[109:78]
             inst_syscall,
             inst_ertn,
             dest_flag,
@@ -105,12 +113,23 @@ assign final_result = res_from_mem ? mem_result : EX_result;
 
 
 assign ME_to_WB_Bus = {
-            inst_syscall,
+            ME_csr_num,     //[118:105]   
+            ME_csr_we,      //[104:104]   
+            ME_csr_wvalue,  //[103:72]  
+            inst_syscall,//[71:71]
             inst_ertn,   //[70:70]
             pc,          //[69:38]   
             gr_we,       //[37:37]
             dest,        //[36:32]
             final_result //[31:0]
         };
+
+assign ME_to_EX_Bus = {
+    ME_csr_num,       
+    ME_csr_we,         
+    ME_csr_wvalue  
+};
+
+
 assign ME_Forward_Res = final_result & {32{gr_we}};
 endmodule

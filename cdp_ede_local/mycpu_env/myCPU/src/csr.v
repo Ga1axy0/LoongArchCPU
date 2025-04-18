@@ -11,13 +11,12 @@ module CSR_Unit (
     input  wire        ipi_int_in,
  
     //EX
-    input  wire [13:0] csr_num,
+    input  wire [13:0] csr_rnum,
 
     input  wire        csr_re,
     output wire [31:0] csr_rdata,
 
-    input  wire        csr_we,
-    input  wire [31:0] csr_wdata,
+    
 
     //Pre-IF
     output wire [31:0] ex_entry,
@@ -30,7 +29,11 @@ module CSR_Unit (
     input  wire        wb_ex,
     input  wire [ 5:0] wb_ecode,
     input  wire [ 8:0] wb_esubcode,
-    input  wire [31:0] wb_pc
+    input  wire [31:0] wb_pc,
+
+    input  wire        csr_we,
+    input  wire [31:0] csr_wdata,
+    input  wire [13:0] csr_wnum
 
 );
 
@@ -93,27 +96,27 @@ wire save_3_wen;
 wire [31:0] csr_rvalue;
 
 
-assign csr_rvalue  = {32{csr_num == CRMD  }} & csr_crmd   |
-                     {32{csr_num == PRMD  }} & csr_prmd   |
-                     {32{csr_num == ECFG  }} & csr_ecfg   | 
-                     {32{csr_num == ESTAT }} & csr_estat  |
-                     {32{csr_num == ERA   }} & csr_era    |
-                     {32{csr_num == EENTRY}} & csr_eentry |
-                     {32{csr_num == SAVE0 }} & csr_save_0 |
-                     {32{csr_num == SAVE1 }} & csr_save_1 | 
-                     {32{csr_num == SAVE2 }} & csr_save_2 |
-                     {32{csr_num == SAVE3 }} & csr_save_3 ;
+assign csr_rvalue  = {32{csr_rnum == CRMD  }} & csr_crmd   |
+                     {32{csr_rnum == PRMD  }} & csr_prmd   |
+                     {32{csr_rnum == ECFG  }} & csr_ecfg   | 
+                     {32{csr_rnum == ESTAT }} & csr_estat  |
+                     {32{csr_rnum == ERA   }} & csr_era    |
+                     {32{csr_rnum == EENTRY}} & csr_eentry |
+                     {32{csr_rnum == SAVE0 }} & csr_save_0 |
+                     {32{csr_rnum == SAVE1 }} & csr_save_1 | 
+                     {32{csr_rnum == SAVE2 }} & csr_save_2 |
+                     {32{csr_rnum == SAVE3 }} & csr_save_3 ;
 
-assign crmd_wen   = csr_we & {csr_num == CRMD};
-assign prmd_wen   = csr_we & {csr_num == PRMD};
-assign ecfg_wen   = csr_we & {csr_num == ECFG};
-assign estat_wen  = csr_we & {csr_num == ESTAT};
-assign era_wen    = csr_we & {csr_num == ERA};
-assign eentry_wen = csr_we & {csr_num == EENTRY};
-assign save_0_wen = csr_we & {csr_num == SAVE0};
-assign save_1_wen = csr_we & {csr_num == SAVE1};
-assign save_2_wen = csr_we & {csr_num == SAVE2};
-assign save_3_wen = csr_we & {csr_num == SAVE3};
+assign crmd_wen   = csr_we & {csr_wnum == CRMD};
+assign prmd_wen   = csr_we & {csr_wnum == PRMD};
+assign ecfg_wen   = csr_we & {csr_wnum == ECFG};
+assign estat_wen  = csr_we & {csr_wnum == ESTAT};
+assign era_wen    = csr_we & {csr_wnum == ERA};
+assign eentry_wen = csr_we & {csr_wnum == EENTRY};
+assign save_0_wen = csr_we & {csr_wnum == SAVE0};
+assign save_1_wen = csr_we & {csr_wnum == SAVE1};
+assign save_2_wen = csr_we & {csr_wnum == SAVE2};
+assign save_3_wen = csr_we & {csr_wnum == SAVE3};
 
 assign csr_rdata = {32{csr_re}} & csr_rvalue;
 

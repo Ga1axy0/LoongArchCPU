@@ -1,8 +1,10 @@
 `define IF_to_ID_Bus_Size  64
 `define ID_to_EX_Bus_Size  180
-`define EX_to_ME_Bus_Size  78
-`define ME_to_WB_Bus_Size  72
+`define EX_to_ME_Bus_Size  125
+`define ME_to_WB_Bus_Size  119
 `define WB_to_RF_Bus_Size  38
+`define WB_to_EX_Bus_Size  47
+`define ME_to_EX_Bus_Size  47
 
 `define br_bus_Size        34
 

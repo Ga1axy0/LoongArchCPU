@@ -18,12 +18,14 @@ module EX_Unit (
     output wire                          EX_to_ID_Sys_op,
     output wire                          csr_re,
     input  wire [31:0]                   csr_rvalue,
-    output wire                          csr_we,
-    output wire [31:0]                   csr_wvalue,
     output wire [13:0]                   csr_num,
 
+
     input  wire                          excp_flush,
-    input  wire                          ertn_flush
+    input  wire                          ertn_flush,
+
+    input  wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus,
+    input  wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus
 );
 
 reg                   inst_syscall;
@@ -99,11 +101,35 @@ always @(posedge clk) begin
 end
 
 
+wire [31:0] csr_wvalue;
+wire        csr_we;
+
 assign csr_re       = res_from_csr;
 assign csr_we       = EX_csr_we;
 assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
 assign csr_wvalue   = rkd_value & EX_csr_wmask; 
 assign csr_num      = EX_csr_num;
+
+wire        ME_csr_we;
+wire [13:0] ME_csr_num;
+wire [31:0] ME_csr_wvalue;
+
+wire        WB_csr_we;
+wire [13:0] WB_csr_num;
+wire [31:0] WB_csr_wvalue;
+
+assign { ME_csr_num,       
+         ME_csr_we,         
+         ME_csr_wvalue } = ME_to_EX_Bus;
+
+assign { WB_csr_num,       
+         WB_csr_we,         
+         WB_csr_wvalue } = WB_to_EX_Bus;
+
+wire [31:0] csr_rdata;
+
+assign csr_rdata = (ME_csr_we & (EX_csr_num == ME_csr_num)) ? ME_csr_wvalue :
+                   (WB_csr_we & (EX_csr_num == WB_csr_num)) ? WB_csr_wvalue : csr_rvalue;
 
 wire [31:0] alu_src1;
 wire [31:0] alu_src2;
@@ -157,12 +183,15 @@ assign dest_flag = {src_is_signed, mem_is_byte, mem_is_half, data_sram_offset};
 */
 
 
-assign final_result = res_from_csr ? csr_rvalue : alu_result;
+assign final_result = res_from_csr ? csr_rdata : alu_result;
 
 assign EX_dest         = dest & {5{EX_Valid}} & {5{gr_we}};
 
 assign EX_to_ME_Bus = {
-            inst_syscall,
+            csr_num,        //[124:111]    
+            csr_we,         //[110:110]
+            csr_wvalue,     //[109:78]
+            inst_syscall,   //[77:77]
             inst_ertn,      //[76:76]
             dest_flag,      //[75:71]
             pc,             //[70:39]

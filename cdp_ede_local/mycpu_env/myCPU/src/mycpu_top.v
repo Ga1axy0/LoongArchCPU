@@ -49,6 +49,8 @@ wire [`ID_to_EX_Bus_Size-1:0]  ID_to_EX_Bus;
 wire [`EX_to_ME_Bus_Size-1:0]  EX_to_ME_Bus;
 wire [`ME_to_WB_Bus_Size-1:0]  ME_to_WB_Bus;
 wire [`WB_to_RF_Bus_Size-1:0]  WB_to_RF_Bus;
+wire [`WB_to_EX_Bus_Size-1:0]  WB_to_EX_Bus;
+wire [`ME_to_EX_Bus_Size-1:0]  ME_to_EX_Bus;
 
 
 wire [`default_Data_Size-1:0]  EX_Forward_Res;
@@ -57,7 +59,8 @@ wire [`default_Data_Size-1:0]  WB_Forward_Res;
 
 wire [ 7:0] hw_int_in;
 wire        ipi_int_in;
-wire [13:0] csr_num;
+wire [13:0] EX_csr_num;
+wire [13:0] WB_csr_num;
 wire        csr_re;
 wire [31:0] csr_rdata;
 wire        csr_we;
@@ -137,9 +140,9 @@ EX_Unit EX(
     .ertn_flush(ertn_flush),
     .csr_re(csr_re),
     .csr_rvalue(csr_rdata),
-    .csr_we(csr_we),
-    .csr_wvalue(csr_wdata),
-    .csr_num(csr_num)
+    .csr_num(EX_csr_num),
+    .ME_to_EX_Bus(ME_to_EX_Bus),
+    .WB_to_EX_Bus(WB_to_EX_Bus)
     
 );
 
@@ -157,7 +160,8 @@ ME_Unit ME(
     .ME_Forward_Res(ME_Forward_Res),
     .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
     .excp_flush(excp_flush),
-    .ertn_flush(ertn_flush)
+    .ertn_flush(ertn_flush),
+    .ME_to_EX_Bus(ME_to_EX_Bus)
 );
 
 WB_Unit WB(
@@ -177,7 +181,11 @@ WB_Unit WB(
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
     .wb_ecode(wb_ecode),
-    .wb_esubcode(wb_esubcode)
+    .wb_esubcode(wb_esubcode),
+    .csr_we(csr_we),
+    .csr_wvalue(csr_wdata),
+    .csr_num(WB_csr_num),
+    .WB_to_EX_Bus(WB_to_EX_Bus)
 );
 
 CSR_Unit CSR(
@@ -185,7 +193,7 @@ CSR_Unit CSR(
     .reset       (reset       ),
     .hw_int_in   (hw_int_in   ),
     .ipi_int_in  (ipi_int_in  ),
-    .csr_num     (csr_num     ),
+    .csr_rnum    (EX_csr_num  ),
     .csr_re      (csr_re      ),
     .csr_rdata   (csr_rdata   ),
     .csr_we      (csr_we      ),
@@ -197,7 +205,8 @@ CSR_Unit CSR(
     .wb_ex       (excp_flush  ),
     .wb_ecode    (wb_ecode    ),
     .wb_esubcode (wb_esubcode ),
-    .wb_pc       (debug_wb_pc )
+    .wb_pc       (debug_wb_pc ),
+    .csr_wnum    (WB_csr_num  )
 );
 
 
