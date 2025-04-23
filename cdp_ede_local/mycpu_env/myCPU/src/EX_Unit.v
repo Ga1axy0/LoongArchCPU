@@ -70,7 +70,7 @@ assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
 assign EX_to_ID_Ld_op  = ID_Load_op;
-assign EX_to_ID_Sys_op = (ID_excp_num[3] | inst_ertn) & EX_Valid;
+assign EX_to_ID_Sys_op = (ID_excp_num[3] | ID_excp_num [2] |inst_ertn) & EX_Valid;
 
 always @(posedge clk) begin
 
@@ -121,7 +121,6 @@ wire        excp_ale;
 assign csr_re       = res_from_csr;
 assign csr_we       = EX_csr_we;
 assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
-assign csr_wvalue   = rkd_value & EX_csr_wmask; 
 assign csr_num      = inst_rdcntid_w ? 14'h40 : EX_csr_num;
 assign timer_re     = ID_timer_re;
 
@@ -152,6 +151,8 @@ wire [31:0] alu_src1;
 wire [31:0] alu_src2;
 wire [31:0] alu_result;
 wire [31:0] final_result;
+
+assign csr_wvalue   = rkd_value & EX_csr_wmask | ~EX_csr_wmask & csr_rdata; 
 
 
 assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
