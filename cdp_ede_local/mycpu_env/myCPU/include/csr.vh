@@ -28,6 +28,21 @@
 //EENTRY
 `define VA 31:6
 
+//TID
+`define TID 31:0
+
+//TCFG
+`define En          0
+`define Periodic    1
+`define InitVal     31:2
+
+//TVAL
+`define TimeVal     29:0
+
+//TICLR
+`define CLR         0
+
+
 //Ecode
 `define ECODE_INT 6'h00         //中断
 `define ECODE_PIL 6'h01         //load操作页无效例外

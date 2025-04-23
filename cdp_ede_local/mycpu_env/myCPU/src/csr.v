@@ -3,6 +3,7 @@
 module CSR_Unit (
     input  wire        clk,
     input  wire        reset,
+    input  wire [31:0] core_id_in,
 
     //Hardware Interrupt
     input  wire [7:0]  hw_int_in,
@@ -75,48 +76,71 @@ reg [31:0] csr_prmd;
 reg [31:0] csr_ecfg;
 reg [31:0] csr_estat;
 reg [31:0] csr_era;
+reg [31:0] csr_badv;
 reg [31:0] csr_eentry;
 reg [31:0] csr_save_0;
 reg [31:0] csr_save_1;
 reg [31:0] csr_save_2;
 reg [31:0] csr_save_3;
+reg [31:0] csr_tid;
+reg [31:0] csr_tcfg;
+reg [31:0] csr_tval;
+reg [31:0] csr_ticlr;
+
 
 wire crmd_wen;
 wire prmd_wen;
 wire ecfg_wen;
 wire estat_wen;
 wire era_wen;
+wire badv_wen;
 wire eentry_wen;
 wire save_0_wen;
 wire save_1_wen;
 wire save_2_wen;
 wire save_3_wen;
+wire tid_wen;
+wire tcfg_wen;
+wire tval_wen;
+wire ticlr_wen;
 
 
 wire [31:0] csr_rvalue;
 
+reg  [31:0] timer_cnt;
+wire [31:0] tcfg_next_value;
 
 assign csr_rvalue  = {32{csr_rnum == CRMD  }} & csr_crmd   |
                      {32{csr_rnum == PRMD  }} & csr_prmd   |
                      {32{csr_rnum == ECFG  }} & csr_ecfg   | 
                      {32{csr_rnum == ESTAT }} & csr_estat  |
                      {32{csr_rnum == ERA   }} & csr_era    |
+                     {32{csr_rnum == BADV  }} & csr_badv   |
                      {32{csr_rnum == EENTRY}} & csr_eentry |
                      {32{csr_rnum == SAVE0 }} & csr_save_0 |
                      {32{csr_rnum == SAVE1 }} & csr_save_1 | 
                      {32{csr_rnum == SAVE2 }} & csr_save_2 |
-                     {32{csr_rnum == SAVE3 }} & csr_save_3 ;
+                     {32{csr_rnum == SAVE3 }} & csr_save_3 |
+                     {32{csr_rnum == TID   }} & csr_tid    |
+                     {32{csr_rnum == TCFG  }} & csr_tcfg   |
+                     {32{csr_rnum == TVAL  }} & csr_tval   |
+                     {32{csr_rnum == TICLR }} & csr_ticlr  ;
 
 assign crmd_wen   = csr_we & {csr_wnum == CRMD};
 assign prmd_wen   = csr_we & {csr_wnum == PRMD};
 assign ecfg_wen   = csr_we & {csr_wnum == ECFG};
 assign estat_wen  = csr_we & {csr_wnum == ESTAT};
 assign era_wen    = csr_we & {csr_wnum == ERA};
+assign badv_wen   = csr_we & {csr_wnum == BADV};
 assign eentry_wen = csr_we & {csr_wnum == EENTRY};
 assign save_0_wen = csr_we & {csr_wnum == SAVE0};
 assign save_1_wen = csr_we & {csr_wnum == SAVE1};
 assign save_2_wen = csr_we & {csr_wnum == SAVE2};
 assign save_3_wen = csr_we & {csr_wnum == SAVE3};
+assign tid_wen    = csr_we & {csr_wnum == TID};
+assign tcfg_wen   = csr_we & {csr_wnum == TCFG};
+assign tval_wen   = csr_we & {csr_wnum == TVAL};
+assign ticlr_wen  = csr_we & {csr_wnum == TICLR};
 
 assign csr_rdata = {32{csr_re}} & csr_rvalue;
 
@@ -194,7 +218,10 @@ always @(posedge clk) begin
         csr_estat[`EsubCode] <= wb_esubcode;
     end
 
-    //TODO:需要加上timer
+    if(csr_tcfg[`En] && timer_cnt == 32'b0)
+        csr_estat[`IS_11] <= 1'b1;
+    else if(ticlr_wen) 
+        csr_estat[`IS_11] <= 1'b0;
 end
 
 //ERA
@@ -230,5 +257,51 @@ always @(posedge clk) begin
         csr_save_3 <= csr_wdata;
     end
 end
+
+
+//TID
+always @(posedge clk) begin
+    if(reset)begin
+        csr_tid[`TID] <= core_id_in;
+    end else if (tid_wen) begin
+        csr_tid[`TID] <= csr_wdata[`TID];
+    end
+end
+
+//TCFG
+always @(posedge clk) begin
+    if(reset)begin
+        csr_tcfg[`En] <= 1'b0;
+    end else if (tcfg_wen) begin
+        csr_tcfg[`En] <= csr_wdata[`En];
+    end
+
+    if(tcfg_wen)begin
+        csr_tcfg[`Periodic] <= csr_wdata[`Periodic];
+        csr_tcfg[`InitVal]  <= csr_wdata[`InitVal];
+    end
+end
+
+//TVAL
+assign tcfg_next_value = tcfg_wen ? csr_wdata : csr_tcfg;
+
+always @(posedge clk) begin
+    if(reset)
+        timer_cnt <= 32'hffffffff;
+    else if (tcfg_wen && tcfg_next_value[`En])
+        timer_cnt <= {tcfg_next_value[`InitVal], 2'b0}; 
+    else if (csr_tcfg[`En] && timer_cnt != 32'hffffffff)begin
+        if(timer_cnt == 32'b0 && csr_tcfg[`Periodic])
+            timer_cnt <= {csr_tcfg[`InitVal], 2'b0};
+        else
+            timer_cnt <= timer_cnt - 1'b1;
+    end
+end
+
+assign csr_tval = timer_cnt;
+
+//TICLR
+assign csr_ticlr[`CLR] = 1'b0;
+
                     
 endmodule
