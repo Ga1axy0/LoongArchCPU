@@ -44,6 +44,8 @@ reg        inst_syscall;
 reg [31:0] ME_csr_wvalue;
 reg [13:0] ME_csr_num;
 reg        ME_csr_we;
+reg        EX_excp_en;
+reg [5:0]  EX_excp_num;
 
 always @(posedge clk) begin
 
@@ -55,10 +57,11 @@ always @(posedge clk) begin
 
     if(EX_to_ME_Valid && ME_Allow_in)begin
         {
+            EX_excp_en,
+            EX_excp_num,
             ME_csr_num,        //[124:111]    
             ME_csr_we,         //[110:110]
             ME_csr_wvalue,     //[109:78]
-            inst_syscall,
             inst_ertn,
             dest_flag,
             pc,             //[70:39]
@@ -75,6 +78,12 @@ assign ME_to_ID_Sys_op = (inst_syscall | inst_ertn) & ME_Valid;
 wire [31:0] mem_result;
 wire [31:0] final_result;
 
+wire [5:0] ME_excp_num;
+wire       ME_excp_en;
+
+
+assign ME_excp_num = EX_excp_num;
+assign ME_excp_en  = EX_excp_en;
 /* 
     read byte:
     x1000 => [7:0]
@@ -113,10 +122,11 @@ assign final_result = res_from_mem ? mem_result : EX_result;
 
 
 assign ME_to_WB_Bus = {
-            ME_csr_num,     //[118:105]   
-            ME_csr_we,      //[104:104]   
-            ME_csr_wvalue,  //[103:72]  
-            inst_syscall,//[71:71]
+            ME_excp_en,     //[124:124]
+            ME_excp_num,    //[123:118]
+            ME_csr_num,     //[117:104]   
+            ME_csr_we,      //[103:103]   
+            ME_csr_wvalue,  //[102:71]  
             inst_ertn,   //[70:70]
             pc,          //[69:38]   
             gr_we,       //[37:37]

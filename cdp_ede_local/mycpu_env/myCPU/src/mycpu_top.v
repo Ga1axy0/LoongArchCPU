@@ -57,6 +57,10 @@ wire [`default_Data_Size-1:0]  EX_Forward_Res;
 wire [`default_Data_Size-1:0]  ME_Forward_Res;
 wire [`default_Data_Size-1:0]  WB_Forward_Res;
 
+wire [31:0] core_id_in;
+
+assign core_id_in = 32'd0;
+
 wire [ 7:0] hw_int_in;
 wire        ipi_int_in;
 wire [13:0] EX_csr_num;
@@ -116,7 +120,8 @@ ID_Unit ID(
     .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
     .WB_to_ID_Sys_op(WB_to_ID_Sys_op),
     .excp_flush(excp_flush),
-    .ertn_flush(ertn_flush)
+    .ertn_flush(ertn_flush),
+    .has_int(has_int)
 );
 
 EX_Unit EX(
@@ -191,6 +196,7 @@ WB_Unit WB(
 CSR_Unit CSR(
     .clk         (clk         ),
     .reset       (reset       ),
+    .core_id_in  (core_id_in  ),
     .hw_int_in   (hw_int_in   ),
     .ipi_int_in  (ipi_int_in  ),
     .csr_rnum    (EX_csr_num  ),

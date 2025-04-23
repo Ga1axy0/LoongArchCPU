@@ -28,9 +28,12 @@ module EX_Unit (
     input  wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus
 );
 
-reg                   inst_syscall;
+reg                   ID_excp_en;
+reg [4:0]             ID_excp_num;
+reg                   mem_is_word;
+reg                   ID_Store_op;
 reg                   inst_ertn;
-reg                   inst_ld_w;
+reg                   ID_Load_op;
 reg [`alu_op_Size-1:0] alu_op;
 reg [31:0]            pc;
 reg [31:0]            imm;
@@ -62,8 +65,8 @@ assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
-assign EX_to_ID_Ld_op  = inst_ld_w;
-assign EX_to_ID_Sys_op = (inst_syscall | inst_ertn) & EX_Valid;
+assign EX_to_ID_Ld_op  = ID_Load_op;
+assign EX_to_ID_Sys_op = (ID_excp_num[3] | inst_ertn) & EX_Valid;
 
 always @(posedge clk) begin
 
@@ -75,7 +78,10 @@ always @(posedge clk) begin
 
     if(EX_Allow_in && ID_to_EX_Valid)begin
         {
-            inst_syscall,
+            ID_excp_en,
+            ID_excp_num,
+            mem_is_word,
+            ID_Store_op,
             inst_ertn,
             EX_csr_wmask_en,
             EX_csr_we,
@@ -84,7 +90,7 @@ always @(posedge clk) begin
             mem_is_byte,
             mem_is_half,
             src_is_signed,
-            inst_ld_w,
+            ID_Load_op,
             alu_op,         
             pc,             
             imm,             
@@ -103,6 +109,8 @@ end
 
 wire [31:0] csr_wvalue;
 wire        csr_we;
+
+wire        excp_ale;
 
 assign csr_re       = res_from_csr;
 assign csr_we       = EX_csr_we;
@@ -152,22 +160,32 @@ alu u_alu(
     .divres_valid(divres_valid)
     );
 
+assign excp_ale = (ID_Load_op | ID_Store_op) & ((mem_is_half && data_sram_offset[0]) ||
+                                           (mem_is_word && |data_sram_offset[1:0]));
+
 wire [4:0] dest_flag;
 wire [1:0] data_sram_offset;
 
 assign data_sram_addr   = alu_result;
 assign data_sram_offset = data_sram_addr [1:0];
-assign data_sram_en     = 1'b1;
+assign data_sram_en     = ~excp_ale;
 
 assign data_sram_we    = (mem_we == 4'b0001) ? (4'b0001 << data_sram_offset) &{4{EX_Valid}} :
                          (mem_we == 4'b0011) ? (4'b0011 << data_sram_offset) &{4{EX_Valid}}:
-                          mem_we & {4{EX_Valid}};
+                          mem_we & {4{EX_Valid}} & {4{~excp_ale}};
 
 assign data_sram_wdata = (mem_we == 4'b0001) ? (rkd_value[7:0] << (8 * data_sram_offset)) : 
                          (mem_we == 4'b0011) ? (rkd_value[15:0] << (8 * data_sram_offset)) : 
                           rkd_value;
 
 assign dest_flag = {src_is_signed, mem_is_byte, mem_is_half, data_sram_offset};
+
+
+wire       EX_excp_en;
+wire [5:0] EX_excp_num;
+
+assign EX_excp_en = ID_excp_en | excp_ale;
+assign EX_excp_num = {excp_ale, ID_excp_num};
 
 /*
     read byte:
@@ -188,10 +206,11 @@ assign final_result = res_from_csr ? csr_rdata : alu_result;
 assign EX_dest         = dest & {5{EX_Valid}} & {5{gr_we}};
 
 assign EX_to_ME_Bus = {
-            csr_num,        //[124:111]    
-            csr_we,         //[110:110]
-            csr_wvalue,     //[109:78]
-            inst_syscall,   //[77:77]
+            EX_excp_en,     //[130:130]
+            EX_excp_num,    //[129:124]
+            csr_num,        //[123:110]    
+            csr_we,         //[109:109]
+            csr_wvalue,     //[108:77]
             inst_ertn,      //[76:76]
             dest_flag,      //[75:71]
             pc,             //[70:39]

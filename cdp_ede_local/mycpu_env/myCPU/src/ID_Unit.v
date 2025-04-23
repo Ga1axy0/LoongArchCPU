@@ -25,11 +25,17 @@ module ID_Unit (
     input  wire [`default_Data_Size-1:0]  WB_Forward_Res,
 
     input  wire                           excp_flush,
-    input  wire                           ertn_flush
+    input  wire                           ertn_flush,
+
+    input  wire                           has_int
 );
 
 reg [31:0] pc;
 reg [31:0] inst;
+reg        IF_excp_num;
+reg        IF_excp_en;
+
+wire excp_ine;
 
 reg        ID_Valid;
 wire       ID_ReadyGo;
@@ -62,7 +68,7 @@ always @(posedge clk) begin
     end
 
     if(IF_to_ID_Valid && ID_Allow_in)begin
-        {pc, inst} <= IF_to_ID_Bus;
+        {IF_excp_en, IF_excp_num, pc, inst} <= IF_to_ID_Bus;
     end 
     
 end
@@ -71,7 +77,7 @@ end
 wire        br_taken;
 wire [31:0] br_target;
 
-
+wire        inst_valid;
 wire        load_op;
 wire        src1_is_pc;
 wire        src2_is_imm;
@@ -88,6 +94,7 @@ wire        src_reg_is_rk;
 wire        src_is_signed;
 wire        mem_is_byte;
 wire        mem_is_half;
+wire        mem_is_word;
 
 
 
@@ -178,6 +185,7 @@ wire        inst_csrxchg;
 wire        inst_ertn;
 
 wire        inst_syscall;
+wire        inst_break;
 
 wire        need_ui5;
 wire        need_ui12;
@@ -195,6 +203,8 @@ wire        rf_we   ;
 wire [ 4:0] rf_waddr;
 wire [31:0] rf_wdata;
 
+wire        ID_Load_op;
+wire        ID_Store_op;
 
 assign op_31_26  = inst[31:26];
 assign op_25_22  = inst[25:22];
@@ -286,7 +296,66 @@ assign inst_csrxchg   = op_31_26_d[6'h01] & op_25_24_d[2'h0] & ~(op_9_5_d[5'h00]
 assign inst_ertn      = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & op_14_10_d[5'h0e] & op_9_5_d[5'h00] & op_4_0_d[5'h00  ];
 
 assign inst_syscall   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h16];
+assign inst_break     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h14];
 
+assign inst_valid     = inst_add_w      |
+                        inst_sub_w      |
+                        inst_slt        |
+                        inst_sltu       |
+                        inst_nor        |
+                        inst_and        |
+                        inst_or         |
+                        inst_xor        |
+                        inst_slli_w     |
+                        inst_srli_w     |
+                        inst_srai_w     |
+                        inst_lu12i_w    |
+                        inst_pcaddu12i  |
+                        inst_addi_w     |
+                        inst_slti       |
+                        inst_sltui      |
+                        inst_andi       |
+                        inst_ori        |
+                        inst_xori       |
+                        inst_ld_w       |
+                        inst_ld_b       |
+                        inst_ld_h       |
+                        inst_ld_bu      |
+                        inst_ld_hu      |
+                        inst_st_w       |
+                        inst_st_b       |
+                        inst_st_h       |
+                        inst_sll_w      |
+                        inst_srl_w      |
+                        inst_sra_w      |
+                        inst_mul_w      |
+                        inst_mulh_w     |
+                        inst_div_w      |
+                        inst_mod_w      |
+                        inst_div_wu     |
+                        inst_mod_wu     |
+                        inst_jirl       |
+                        inst_b          |
+                        inst_bl         |
+                        inst_beq        |
+                        inst_bne        |
+                        inst_blt        |
+                        inst_bge        |
+                        inst_bltu       |
+                        inst_bgeu       |
+                        inst_csrrd      |
+                        inst_csrwr      |
+                        inst_csrxchg    |
+                        inst_ertn       |
+                        inst_syscall    |
+                        inst_break      ;
+
+wire ID_excp_en;
+wire [4:0] ID_excp_num;
+
+assign excp_ine = ~inst_valid;
+assign ID_excp_en  = IF_excp_en | excp_ine | inst_syscall | inst_break | has_int;
+assign ID_excp_num = {excp_ine, inst_syscall, inst_break, IF_excp_num, has_int};
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w |
                      inst_jirl | inst_bl | inst_pcaddu12i | inst_ld_b|
@@ -308,6 +377,8 @@ assign alu_op[14] = inst_div_w | inst_div_wu;
 assign alu_op[15] = inst_mod_w | inst_mod_wu;
 
 
+assign ID_Load_op  = inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w;
+assign ID_Store_op = inst_st_b | inst_ld_bu | inst_st_h | inst_ld_hu | inst_ld_w;
 
 assign src_is_signed = inst_mul_w | inst_mulh_w | inst_div_w | inst_mod_w | inst_blt | inst_bge | inst_ld_b | inst_ld_h;
 
@@ -378,9 +449,9 @@ assign mem_we        = inst_st_w ? 4'b1111 :
                        inst_st_h ? 4'b0011 :
                                    4'b0000 ;
 assign dest          = dst_is_r1 ? 5'd1 : rd;
-assign mem_is_byte   = inst_ld_b | inst_ld_bu;
-assign mem_is_half   = inst_ld_h | inst_ld_hu;
-
+assign mem_is_byte   = inst_ld_b | inst_ld_bu | inst_st_b;
+assign mem_is_half   = inst_ld_h | inst_ld_hu | inst_st_h;
+assign mem_is_word   = inst_ld_w | inst_st_w;
 
 assign rf_raddr1 = rj;
 assign rf_raddr2 = src_reg_is_rd ? rd :rk;
@@ -435,27 +506,30 @@ assign csr_we       = inst_csrwr | inst_csrxchg;
 assign res_from_csr = inst_csrrd | inst_csrxchg | inst_csrwr;
 
 assign ID_to_EX_Bus = {
-                       inst_syscall,    //[179:179]
-                       inst_ertn,       //[178:178]
-                       csr_wmask_en,    //[177:177]
-                       csr_we,          //[176:176]
-                       csr_num,         //[175:162]
-                       res_from_csr,    //[161:161]
-                       mem_is_byte,     //[160:160]
-                       mem_is_half,     //[159:159]
-                       src_is_signed,   //[158:158]
-                       inst_ld_w,       //[157:157]
-                       alu_op,          //[156:141]
-                       pc,              //[140:109]
-                       imm,             //[108:77]
-                       rj_value,        //[76:45]
-                       rkd_value,       //[44:13]
-                       src1_is_pc,      //[12:12]
-                       src2_is_imm,     //[11:11]
-                       res_from_mem,    //[10:10]
-                       gr_we,           //[9:9]
-                       mem_we,          //[8:5]
-                       dest             //[4:0]
+                        ID_excp_en,      //[186:186]
+                        ID_excp_num,     //[185:181]     
+                        mem_is_word,     //[180:180]
+                        ID_Store_op,     //[179:179]
+                        inst_ertn,       //[178:178]
+                        csr_wmask_en,    //[177:177]
+                        csr_we,          //[176:176]
+                        csr_num,         //[175:162]
+                        res_from_csr,    //[161:161]
+                        mem_is_byte,     //[160:160]
+                        mem_is_half,     //[159:159]
+                        src_is_signed,   //[158:158]
+                        ID_Load_op,      //[157:157]
+                        alu_op,          //[156:141]
+                        pc,              //[140:109]
+                        imm,             //[108:77]
+                        rj_value,        //[76:45]
+                        rkd_value,       //[44:13]
+                        src1_is_pc,      //[12:12]
+                        src2_is_imm,     //[11:11]
+                        res_from_mem,    //[10:10]
+                        gr_we,           //[9:9]
+                        mem_we,          //[8:5]
+                        dest             //[4:0]
                        };
 
 

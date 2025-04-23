@@ -33,10 +33,11 @@ reg         gr_we;
 reg [4:0]   dest;
 reg [31:0]  final_result;
 reg         inst_ertn;
-reg         inst_syscall;
 reg         WB_csr_we;
 reg [31:0]  WB_csr_wvalue;
 reg [13:0]  WB_csr_num;
+reg [5:0]   ME_excp_num;
+reg         ME_excp_en;
 
 wire         WB_ReadyGo;
 reg          WB_Valid;
@@ -58,10 +59,11 @@ always @(posedge clk) begin
 
     if (ME_to_WB_Valid && WB_Allow_in) begin
         {
+            ME_excp_en,
+            ME_excp_num,
             WB_csr_num,        
             WB_csr_we,       
             WB_csr_wvalue,    
-            inst_syscall,
             inst_ertn,
             pc,          //[69:38]   
             gr_we,       //[37:37]
@@ -71,15 +73,41 @@ always @(posedge clk) begin
     end
 end
 
-assign csr_num = WB_csr_num;
-assign csr_we  = WB_csr_we;
-assign csr_wvalue = WB_csr_wvalue;
+wire       WB_excp_en;
+wire [5:0] WB_excp_num;
+wire       badv_we;
 
-assign WB_to_ID_Sys_op = (inst_syscall | inst_ertn) & WB_Valid;
+assign WB_excp_en  = ME_excp_en;
+assign WB_excp_num = ME_excp_num;
+
+
+
+assign WB_to_ID_Sys_op = (WB_excp_num[3] | inst_ertn) & WB_Valid;
 
 assign ertn_flush = inst_ertn & WB_Valid;
 
-assign {wb_ecode , wb_esubcode} = inst_syscall ? {`ECODE_SYS,9'b0} : 15'b0;
+/*
+    excp_num
+    [0] -> int,
+    [1] -> ADEF,
+    [2] -> BRK,
+    [3] -> SYS,
+    [4] -> INE,
+    [5] -> ALE
+*/
+
+
+assign {wb_ecode, wb_esubcode, badv_we} =   WB_excp_num[0] ? {`ECODE_INT,       9'b0,           1'b0} :
+                                            WB_excp_num[1] ? {`ECODE_ADEF_ADEM, `EsubCode_ADEF, 1'b1} :
+                                            WB_excp_num[2] ? {`ECODE_BRK,       9'b0,           1'b0} :
+                                            WB_excp_num[3] ? {`ECODE_SYS,       9'b0,           1'b0} : 
+                                            WB_excp_num[4] ? {`ECODE_INE,       9'b0,           1'b0} :
+                                            WB_excp_num[5] ? {`ECODE_ALE,       9'b0,           1'b1} :
+                                            16'b0;
+
+assign csr_num    = badv_we ? 14'h7 : WB_csr_num;
+assign csr_we     = WB_csr_we | badv_we;
+assign csr_wvalue = badv_we ? pc : WB_csr_wvalue;
 
 assign rf_we    = gr_we && WB_Valid;
 assign rf_waddr = dest;
@@ -90,7 +118,7 @@ assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = dest;
 assign debug_wb_rf_wdata = final_result;
 
-assign excp_flush = WB_Valid & inst_syscall;
+assign excp_flush = WB_Valid & WB_excp_en;
 
 assign WB_dest = dest & {5{rf_we}};
 
