@@ -77,6 +77,9 @@ wire        excp_flush;
 wire [ 5:0] wb_ecode;
 wire [ 8:0] wb_esubcode;
 
+wire [ 1:0] timer_re;
+wire [31:0] timer_rdata;
+
 assign hw_int_in  = 8'd0;
 assign ipi_int_in = 1'd0;
 
@@ -147,7 +150,9 @@ EX_Unit EX(
     .csr_rvalue(csr_rdata),
     .csr_num(EX_csr_num),
     .ME_to_EX_Bus(ME_to_EX_Bus),
-    .WB_to_EX_Bus(WB_to_EX_Bus)
+    .WB_to_EX_Bus(WB_to_EX_Bus),
+    .timer_rdata (timer_rdata ),
+    .timer_re    (timer_re    )
     
 );
 
@@ -212,7 +217,9 @@ CSR_Unit CSR(
     .wb_ecode    (wb_ecode    ),
     .wb_esubcode (wb_esubcode ),
     .wb_pc       (debug_wb_pc ),
-    .csr_wnum    (WB_csr_num  )
+    .csr_wnum    (WB_csr_num  ),
+    .timer_rdata (timer_rdata ),
+    .timer_re    (timer_re    )
 );
 
 

@@ -187,6 +187,10 @@ wire        inst_ertn;
 wire        inst_syscall;
 wire        inst_break;
 
+wire        inst_rdcntid_w;
+wire        inst_rdcntvl_w;
+wire        inst_rdcntvh_w;
+
 wire        need_ui5;
 wire        need_ui12;
 wire        need_si12;
@@ -289,6 +293,11 @@ assign inst_bge       = op_31_26_d[6'h19];
 assign inst_bltu      = op_31_26_d[6'h1a];
 assign inst_bgeu      = op_31_26_d[6'h1b];
 
+
+
+assign inst_rdcntid_w = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & op_14_10_d[5'h18] & op_4_0_d[5'h00];
+assign inst_rdcntvh_w = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & op_14_10_d[5'h18] & op_9_5_d[5'h00];
+assign inst_rdcntvl_w = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & op_14_10_d[5'h19] & op_9_5_d[5'h00];
 
 assign inst_csrrd     = op_31_26_d[6'h01] & op_25_24_d[2'h0] & op_9_5_d[5'h00];
 assign inst_csrwr     = op_31_26_d[6'h01] & op_25_24_d[2'h0] & op_9_5_d[5'h01];
@@ -402,12 +411,12 @@ assign br_offs = need_si26 ? {{ 4{i26[25]}}, i26[25:0], 2'b0} :
 
 assign jirl_offs = {{14{i16[15]}}, i16[15:0], 2'b0};
 
-assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w | inst_blt | inst_bltu | inst_bge | inst_bgeu | inst_st_b | inst_st_h | inst_csrwr | inst_csrxchg;
+assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w | inst_blt | inst_bltu | inst_bge | inst_bgeu | inst_st_b | inst_st_h | inst_csrwr | inst_csrxchg | inst_rdcntid_w;
 assign src_reg_is_rj = ~(inst_b | inst_bl | inst_lu12i_w | inst_csrrd | inst_csrwr);
 assign src_reg_is_rk = ~(inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | 
                          inst_b | inst_bl | inst_beq | inst_bne | inst_lu12i_w | inst_slti | inst_sltui | inst_andi | 
                          inst_ori | inst_xori | inst_st_b | inst_st_h | inst_blt | inst_bltu | inst_bge | inst_bgeu |
-                         inst_csrrd | inst_csrwr | inst_csrxchg);
+                         inst_csrrd | inst_csrwr | inst_csrxchg | inst_rdcntid_w | inst_rdcntvh_w | inst_rdcntvl_w);
 
 assign rd_eq = src_reg_is_rd && rd != 5'b0 && ((rd == EX_dest) || (rd == ME_dest) || (rd == WB_dest));
 assign rj_eq = src_reg_is_rj && rj != 5'b0 && ((rj == EX_dest) || (rj == ME_dest) || (rj == WB_dest));
@@ -503,9 +512,15 @@ assign br_bus = {br_taken , br_target, stall};
 
 assign csr_wmask_en = inst_csrxchg;
 assign csr_we       = inst_csrwr | inst_csrxchg;
-assign res_from_csr = inst_csrrd | inst_csrxchg | inst_csrwr;
+assign res_from_csr = inst_csrrd | inst_csrxchg | inst_csrwr | inst_rdcntid_w;
+
+wire [1:0] timer_re;
+
+assign timer_re = {inst_rdcntvh_w, inst_rdcntvl_w};
 
 assign ID_to_EX_Bus = {
+                        timer_re,        //[189:188]
+                        inst_rdcntid_w,  //[187:187]
                         ID_excp_en,      //[186:186]
                         ID_excp_num,     //[185:181]     
                         mem_is_word,     //[180:180]

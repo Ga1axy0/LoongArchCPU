@@ -23,11 +23,15 @@ module EX_Unit (
 
     input  wire                          excp_flush,
     input  wire                          ertn_flush,
+    output wire [1:0]                    timer_re,
+    input  wire [31:0]                   timer_rdata,
 
     input  wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus,
     input  wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus
 );
 
+reg                   inst_rdcntid_w;
+reg [1:0]             ID_timer_re;
 reg                   ID_excp_en;
 reg [4:0]             ID_excp_num;
 reg                   mem_is_word;
@@ -78,6 +82,8 @@ always @(posedge clk) begin
 
     if(EX_Allow_in && ID_to_EX_Valid)begin
         {
+            ID_timer_re,
+            inst_rdcntid_w,
             ID_excp_en,
             ID_excp_num,
             mem_is_word,
@@ -106,7 +112,7 @@ always @(posedge clk) begin
     end
 end
 
-
+wire        res_from_timer;
 wire [31:0] csr_wvalue;
 wire        csr_we;
 
@@ -116,7 +122,10 @@ assign csr_re       = res_from_csr;
 assign csr_we       = EX_csr_we;
 assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
 assign csr_wvalue   = rkd_value & EX_csr_wmask; 
-assign csr_num      = EX_csr_num;
+assign csr_num      = inst_rdcntid_w ? 14'h40 : EX_csr_num;
+assign timer_re     = ID_timer_re;
+
+assign res_from_timer = |ID_timer_re[1:0];
 
 wire        ME_csr_we;
 wire [13:0] ME_csr_num;
@@ -201,7 +210,8 @@ assign EX_excp_num = {excp_ale, ID_excp_num};
 */
 
 
-assign final_result = res_from_csr ? csr_rdata : alu_result;
+assign final_result = res_from_csr   ? csr_rdata   : 
+                      res_from_timer ? timer_rdata : alu_result;
 
 assign EX_dest         = dest & {5{EX_Valid}} & {5{gr_we}};
 

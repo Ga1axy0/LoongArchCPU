@@ -13,10 +13,9 @@ module CSR_Unit (
  
     //EX
     input  wire [13:0] csr_rnum,
-
     input  wire        csr_re,
     output wire [31:0] csr_rdata,
-
+    
     
 
     //Pre-IF
@@ -24,6 +23,8 @@ module CSR_Unit (
     output wire [31:0] er_entry,
     //ID
     output wire        has_int,
+    input  wire [1:0]  timer_re,
+    output wire [31:0] timer_rdata,
 
     //WB
     input  wire        ertn_flush,
@@ -109,6 +110,11 @@ wire [31:0] csr_rvalue;
 
 reg  [31:0] timer_cnt;
 wire [31:0] tcfg_next_value;
+
+reg  [63:0] timer_64;
+
+assign timer_rdata = timer_re[0] ? timer_64[31:0]  : 
+                     timer_re[1] ? timer_64[63:32] : 32'b0;
 
 assign csr_rvalue  = {32{csr_rnum == CRMD  }} & csr_crmd   |
                      {32{csr_rnum == PRMD  }} & csr_prmd   |
@@ -303,5 +309,13 @@ assign csr_tval = timer_cnt;
 //TICLR
 assign csr_ticlr[`CLR] = 1'b0;
 
+
+//Timer_64
+always @(posedge clk) begin
+    if(reset)
+        timer_64 <= 64'b0;
+    else 
+        timer_64 <= timer_64 + 1'b1;
+end
                     
 endmodule
