@@ -343,6 +343,7 @@ assign inst_valid     = inst_add_w      |
                         inst_mod_w      |
                         inst_div_wu     |
                         inst_mod_wu     |
+                        inst_mulh_wu    |
                         inst_jirl       |
                         inst_b          |
                         inst_bl         |
