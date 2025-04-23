@@ -40,7 +40,7 @@
 `define TimeVal     29:0
 
 //TICLR
-`define CLR         0
+`define CLR         31:0
 
 
 //Ecode

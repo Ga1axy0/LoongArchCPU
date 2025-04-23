@@ -200,7 +200,7 @@ end
 //ECFG
 always @(posedge clk) begin
     if (reset) begin
-        csr_ecfg[`LIE] <= 13'b0;
+        csr_ecfg[31:0] <= 32'b0;
     end else if (ecfg_wen) begin
         csr_ecfg[`LIE] <= csr_wdata[`LIE] & 13'h1BFF; //第10位为保留域
     end
@@ -302,12 +302,10 @@ always @(posedge clk) begin
         else
             timer_cnt <= timer_cnt - 1'b1;
     end
+    csr_tval <= timer_cnt;
+    csr_ticlr[`CLR] <= 1'b0;
 end
 
-assign csr_tval = timer_cnt;
-
-//TICLR
-assign csr_ticlr[`CLR] = 1'b0;
 
 
 //Timer_64
