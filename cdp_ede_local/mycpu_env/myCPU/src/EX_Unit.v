@@ -27,7 +27,9 @@ module EX_Unit (
     input  wire [31:0]                   timer_rdata,
 
     input  wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus,
-    input  wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus
+    input  wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus,
+    input  wire                          ME_to_ID_Sys_op,
+    input  wire                          WB_to_ID_Sys_op
 );
 
 reg                   inst_rdcntid_w;
@@ -70,7 +72,7 @@ assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
 assign EX_to_ID_Ld_op  = ID_Load_op;
-assign EX_to_ID_Sys_op = (ID_excp_num[3] | ID_excp_num [2] |inst_ertn) & EX_Valid;
+assign EX_to_ID_Sys_op = (ID_excp_en |inst_ertn) & EX_Valid;
 
 always @(posedge clk) begin
 
@@ -119,7 +121,7 @@ wire        csr_we;
 wire        excp_ale;
 
 assign csr_re       = res_from_csr;
-assign csr_we       = EX_csr_we;
+assign csr_we       = EX_csr_we & ~ ME_to_ID_Sys_op & ~WB_to_ID_Sys_op;
 assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
 assign csr_num      = inst_rdcntid_w ? 14'h40 : EX_csr_num;
 assign timer_re     = ID_timer_re;
@@ -144,8 +146,8 @@ assign { WB_csr_num,
 
 wire [31:0] csr_rdata;
 
-assign csr_rdata = (ME_csr_we & (EX_csr_num == ME_csr_num)) ? ME_csr_wvalue :
-                   (WB_csr_we & (EX_csr_num == WB_csr_num)) ? WB_csr_wvalue : csr_rvalue;
+assign csr_rdata = (ME_csr_we & (csr_num == ME_csr_num)) ? ME_csr_wvalue :
+                   (WB_csr_we & (csr_num == WB_csr_num)) ? WB_csr_wvalue : csr_rvalue;
 
 wire [31:0] alu_src1;
 wire [31:0] alu_src2;
@@ -158,10 +160,12 @@ assign csr_wvalue   = rkd_value & EX_csr_wmask | ~EX_csr_wmask & csr_rdata;
 assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
 assign alu_src2 = src2_is_imm ? imm : rkd_value;
 
+wire alu_valid = EX_Valid & ~ME_to_ID_Sys_op & ~ WB_to_ID_Sys_op;
+
 alu u_alu(
     .clk(clk),
     .reset(reset),
-    .alu_valid(EX_Valid),
+    .alu_valid(alu_valid),
     .alu_op     (alu_op    ),
     .alu_src1   (alu_src1  ),
     .alu_src2   (alu_src2  ),
@@ -182,7 +186,7 @@ assign data_sram_en     = ~excp_ale;
 
 assign data_sram_we    = (mem_we == 4'b0001) ? (4'b0001 << data_sram_offset) &{4{EX_Valid}} :
                          (mem_we == 4'b0011) ? (4'b0011 << data_sram_offset) &{4{EX_Valid}}:
-                          mem_we & {4{EX_Valid}} & {4{~excp_ale}};
+                          mem_we & {4{EX_Valid}} & {4{~EX_excp_en}} & {4{~ME_to_ID_Sys_op}};
 
 assign data_sram_wdata = (mem_we == 4'b0001) ? (rkd_value[7:0] << (8 * data_sram_offset)) : 
                          (mem_we == 4'b0011) ? (rkd_value[15:0] << (8 * data_sram_offset)) : 
@@ -210,6 +214,8 @@ assign EX_excp_num = {excp_ale, ID_excp_num};
     x0000 => [31:0]
 */
 
+wire EX_gr_we;
+assign EX_gr_we = gr_we & ~EX_excp_en & ~ME_to_ID_Sys_op & ~WB_to_ID_Sys_op;
 
 assign final_result = res_from_csr   ? csr_rdata   : 
                       res_from_timer ? timer_rdata : alu_result;
@@ -227,7 +233,7 @@ assign EX_to_ME_Bus = {
             pc,             //[70:39]
             final_result,   //[38:7]    
             res_from_mem,   //[6:6]
-            gr_we,          //[5:5]
+            EX_gr_we,       //[5:5]
             dest            //[4:0]
         };
 

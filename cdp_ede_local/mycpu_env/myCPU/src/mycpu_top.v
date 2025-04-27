@@ -152,7 +152,9 @@ EX_Unit EX(
     .ME_to_EX_Bus(ME_to_EX_Bus),
     .WB_to_EX_Bus(WB_to_EX_Bus),
     .timer_rdata (timer_rdata ),
-    .timer_re    (timer_re    )
+    .timer_re    (timer_re    ),
+    .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
+    .WB_to_ID_Sys_op(WB_to_ID_Sys_op)
     
 );
 

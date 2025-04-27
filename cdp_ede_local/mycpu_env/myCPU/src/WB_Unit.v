@@ -82,7 +82,7 @@ assign WB_excp_num = ME_excp_num;
 
 
 
-assign WB_to_ID_Sys_op = (WB_excp_num[3] | inst_ertn) & WB_Valid;
+assign WB_to_ID_Sys_op = (WB_excp_en | inst_ertn) & WB_Valid;
 
 assign ertn_flush = inst_ertn & WB_Valid;
 
@@ -105,9 +105,13 @@ assign {wb_ecode, wb_esubcode, badv_we} =   WB_excp_num[0] ? {`ECODE_INT,       
                                             WB_excp_num[5] ? {`ECODE_ALE,       9'b0,           1'b1} :
                                             16'b0;
 
+wire [31:0] badv_wdata;
+assign badv_wdata = WB_excp_num[1] ? pc :
+                    WB_excp_num[5] ? final_result : 32'b0;
+
 assign csr_num    = badv_we ? 14'h7 : WB_csr_num;
 assign csr_we     = WB_csr_we | badv_we;
-assign csr_wvalue = badv_we ? pc : WB_csr_wvalue;
+assign csr_wvalue = badv_we ? badv_wdata : WB_csr_wvalue;
 
 assign rf_we    = gr_we && WB_Valid;
 assign rf_waddr = dest;

@@ -73,7 +73,7 @@ always @(posedge clk) begin
     end
 end
 
-assign ME_to_ID_Sys_op = (ME_excp_num[3] | ME_excp_num[2] | inst_ertn) & ME_Valid;
+assign ME_to_ID_Sys_op = (ME_excp_en| inst_ertn) & ME_Valid;
 
 wire [31:0] mem_result;
 wire [31:0] final_result;
@@ -117,7 +117,7 @@ assign mem_result   = (dest_flag == 5'b11000) ? {{24{data_sram_rdata[7]}},data_s
 
                       /*dest_flag == 5'b00000*/ data_sram_rdata;
 
-assign final_result = res_from_mem ? mem_result : EX_result;
+assign final_result = (res_from_mem & ~ME_excp_en) ? mem_result : EX_result;
 
 
 

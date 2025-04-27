@@ -52,7 +52,7 @@ assign IF_ReadyGO = ~br_taken;
 assign IF_Allow_in = !IF_Valid || IF_ReadyGO && ID_Allow_in;
 assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 
-assign to_IF_Valid = ~reset & ~excp_adef;
+assign to_IF_Valid = ~reset;
 assign seq_pc                 = pc + 3'h4;
 assign nextpc                 = excp_flush ? ex_entry  :
                                 ertn_flush ? er_entry  :
