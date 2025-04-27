@@ -306,7 +306,11 @@ always @(posedge clk) begin
     csr_ticlr[`CLR] <= 1'b0;
 end
 
-
+//BADV
+always @(posedge clk) begin
+    if(badv_wen)
+        csr_badv[`VAddr] <= csr_wdata[`VAddr];
+end
 
 //Timer_64
 always @(posedge clk) begin

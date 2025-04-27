@@ -42,6 +42,9 @@
 //TICLR
 `define CLR         31:0
 
+//BADV
+`define VAddr       31:0
+
 
 //Ecode
 `define ECODE_INT 6'h00         //中断
