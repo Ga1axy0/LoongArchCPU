@@ -36,7 +36,7 @@ reg         inst_ertn;
 reg         WB_csr_we;
 reg [31:0]  WB_csr_wvalue;
 reg [13:0]  WB_csr_num;
-reg [5:0]   ME_excp_num;
+reg [6:0]   ME_excp_num;
 reg         ME_excp_en;
 
 wire         WB_ReadyGo;
@@ -64,7 +64,6 @@ always @(posedge clk) begin
             WB_csr_num,        
             WB_csr_we,       
             WB_csr_wvalue,    
-            inst_ertn,
             pc,          //[69:38]   
             gr_we,       //[37:37]
             dest,        //[36:32]
@@ -74,7 +73,7 @@ always @(posedge clk) begin
 end
 
 wire       WB_excp_en;
-wire [5:0] WB_excp_num;
+wire [6:0] WB_excp_num;
 wire       badv_we;
 
 assign WB_excp_en  = ME_excp_en;
@@ -84,7 +83,7 @@ assign WB_excp_num = ME_excp_num;
 
 assign WB_to_ID_Sys_op = (WB_excp_en | inst_ertn) & WB_Valid;
 
-assign ertn_flush = inst_ertn & WB_Valid;
+assign ertn_flush = WB_excp_num[2] & WB_Valid;
 
 /*
     excp_num
@@ -99,15 +98,15 @@ assign ertn_flush = inst_ertn & WB_Valid;
 
 assign {wb_ecode, wb_esubcode, badv_we} =   WB_excp_num[0] ? {`ECODE_INT,       9'b0,           1'b0} :
                                             WB_excp_num[1] ? {`ECODE_ADEF_ADEM, `EsubCode_ADEF, 1'b1} :
-                                            WB_excp_num[2] ? {`ECODE_BRK,       9'b0,           1'b0} :
-                                            WB_excp_num[3] ? {`ECODE_SYS,       9'b0,           1'b0} : 
-                                            WB_excp_num[4] ? {`ECODE_INE,       9'b0,           1'b0} :
-                                            WB_excp_num[5] ? {`ECODE_ALE,       9'b0,           1'b1} :
+                                            WB_excp_num[3] ? {`ECODE_BRK,       9'b0,           1'b0} :
+                                            WB_excp_num[4] ? {`ECODE_SYS,       9'b0,           1'b0} : 
+                                            WB_excp_num[5] ? {`ECODE_INE,       9'b0,           1'b0} :
+                                            WB_excp_num[6] ? {`ECODE_ALE,       9'b0,           1'b1} :
                                             16'b0;
 
 wire [31:0] badv_wdata;
 assign badv_wdata = WB_excp_num[1] ? pc :
-                    WB_excp_num[5] ? final_result : 32'b0;
+                    WB_excp_num[6] ? final_result : 32'b0;
 
 assign csr_num    = badv_we ? 14'h7 : WB_csr_num;
 assign csr_we     = WB_csr_we | badv_we;

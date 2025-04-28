@@ -35,7 +35,7 @@ module EX_Unit (
 reg                   inst_rdcntid_w;
 reg [1:0]             ID_timer_re;
 reg                   ID_excp_en;
-reg [4:0]             ID_excp_num;
+reg [5:0]             ID_excp_num;
 reg                   mem_is_word;
 reg                   ID_Store_op;
 reg                   inst_ertn;
@@ -90,7 +90,6 @@ always @(posedge clk) begin
             ID_excp_num,
             mem_is_word,
             ID_Store_op,
-            inst_ertn,
             EX_csr_wmask_en,
             EX_csr_we,
             EX_csr_num,
@@ -196,7 +195,7 @@ assign dest_flag = {src_is_signed, mem_is_byte, mem_is_half, data_sram_offset};
 
 
 wire       EX_excp_en;
-wire [5:0] EX_excp_num;
+wire [6:0] EX_excp_num;
 
 assign EX_excp_en = ID_excp_en | excp_ale;
 assign EX_excp_num = {excp_ale, ID_excp_num};
@@ -228,7 +227,6 @@ assign EX_to_ME_Bus = {
             csr_num,        //[123:110]    
             csr_we,         //[109:109]
             csr_wvalue,     //[108:77]
-            inst_ertn,      //[76:76]
             dest_flag,      //[75:71]
             pc,             //[70:39]
             final_result,   //[38:7]    
