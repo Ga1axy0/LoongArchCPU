@@ -23,6 +23,15 @@ wire excp_adef;
 wire excp_en;
 wire excp_num;
 
+/*
+    excp_num[2:0]
+    3'd0 -> adef
+    3'd1 -> ale
+    3'd2 -> ine
+    3'd3 -> brk
+    3'd4 -> sys
+*/
+
 wire        br_taken;
 wire        br_stall;
 wire [31:0] br_target;

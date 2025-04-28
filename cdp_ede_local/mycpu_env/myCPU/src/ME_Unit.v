@@ -45,7 +45,7 @@ reg [31:0] ME_csr_wvalue;
 reg [13:0] ME_csr_num;
 reg        ME_csr_we;
 reg        EX_excp_en;
-reg [6:0]  EX_excp_num;
+reg [5:0]  EX_excp_num;
 
 always @(posedge clk) begin
 
@@ -62,6 +62,7 @@ always @(posedge clk) begin
             ME_csr_num,        //[124:111]    
             ME_csr_we,         //[110:110]
             ME_csr_wvalue,     //[109:78]
+            inst_ertn,
             dest_flag,
             pc,             //[70:39]
             EX_result,     //[38:7]    
@@ -77,7 +78,7 @@ assign ME_to_ID_Sys_op = (ME_excp_en| inst_ertn) & ME_Valid;
 wire [31:0] mem_result;
 wire [31:0] final_result;
 
-wire [6:0] ME_excp_num;
+wire [5:0] ME_excp_num;
 wire       ME_excp_en;
 
 
@@ -126,6 +127,7 @@ assign ME_to_WB_Bus = {
             ME_csr_num,     //[117:104]   
             ME_csr_we,      //[103:103]   
             ME_csr_wvalue,  //[102:71]  
+            inst_ertn,   //[70:70]
             pc,          //[69:38]   
             gr_we,       //[37:37]
             dest,        //[36:32]

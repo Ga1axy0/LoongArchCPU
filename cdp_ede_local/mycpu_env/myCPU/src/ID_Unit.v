@@ -364,11 +364,11 @@ assign inst_valid     = inst_add_w      |
                         inst_rdcntvl_w  ;
 
 wire ID_excp_en;
-wire [5:0] ID_excp_num;
+wire [4:0] ID_excp_num;
 
 assign excp_ine = ~inst_valid;
-assign ID_excp_en  = IF_excp_en | excp_ine | inst_syscall | inst_break | has_int | inst_ertn;
-assign ID_excp_num = {excp_ine, inst_syscall, inst_break, inst_ertn, IF_excp_num, has_int};
+assign ID_excp_en  = IF_excp_en | excp_ine | inst_syscall | inst_break | has_int;
+assign ID_excp_num = {excp_ine, inst_syscall, inst_break, IF_excp_num, has_int};
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w |
                      inst_jirl | inst_bl | inst_pcaddu12i | inst_ld_b|
@@ -532,6 +532,7 @@ assign ID_to_EX_Bus = {
                         ID_excp_num,     //[185:181]     
                         mem_is_word,     //[180:180]
                         ID_Store_op,     //[179:179]
+                        inst_ertn,       //[178:178]
                         csr_wmask_en,    //[177:177]
                         csr_we,          //[176:176]
                         csr_num,         //[175:162]
