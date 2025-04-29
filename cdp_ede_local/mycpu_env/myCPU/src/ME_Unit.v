@@ -11,7 +11,8 @@ module ME_Unit (
     output wire [`ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
     output wire [`default_Dest_Size-1:0] ME_dest,
     output wire [`default_Data_Size-1:0] ME_Forward_Res,
-    output wire                          ME_to_ID_Sys_op,
+
+    output wire                          ME_excp,
 
     input  wire                          excp_flush,
     input  wire                          ertn_flush,
@@ -83,7 +84,9 @@ wire       ME_excp_en;
 
 
 assign ME_excp_num = EX_excp_num;
-assign ME_excp_en  = EX_excp_en;
+assign ME_excp_en  = EX_excp_en & ME_Valid;
+
+assign ME_excp = ME_excp_en & ME_Valid;
 /* 
     read byte:
     x1000 => [7:0]

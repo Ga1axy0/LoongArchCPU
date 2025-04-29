@@ -11,20 +11,11 @@ module Flush_Unit (
     output wire global_flush_flag
 );
 
-reg flush_pending;
+wire flush_pending;
 
 wire excp_detect = IF_excp | ID_excp | EX_excp | ME_excp;
 
-always @(posedge clk) begin
-    if(reset)begin
-        flush_pending <= 1'b0;
-    end else if(excp_commit) begin
-        flush_pending <= 1'b0;
-    end else if(excp_detect) begin
-        flush_pending <= 1'b1;
-    end
-    
-end
+assign flush_pending = ~excp_commit & excp_detect;
 
 assign global_flush_flag = flush_pending;
 

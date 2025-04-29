@@ -35,9 +35,7 @@ wire         EX_to_ME_Valid;
 wire         ME_to_WB_Valid;
 
 wire         EX_to_ID_Ld_op; 
-wire         EX_to_ID_Sys_op;
-wire         ME_to_ID_Sys_op;
-wire         WB_to_ID_Sys_op;    
+  
 
 wire [`default_Dest_Size-1:0]   EX_dest;
 wire [`default_Dest_Size-1:0]   ME_dest;
@@ -80,6 +78,13 @@ wire [ 8:0] wb_esubcode;
 wire [ 1:0] timer_re;
 wire [31:0] timer_rdata;
 
+wire        IF_excp;
+wire        ID_excp;
+wire        EX_excp;
+wire        ME_excp;
+wire        excp_commit;
+wire        global_flush_flag;
+
 assign hw_int_in  = 8'd0;
 assign ipi_int_in = 1'd0;
 
@@ -98,7 +103,8 @@ IF_Unit IF(
     .ex_entry(ex_entry),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
-    .er_entry(er_entry)
+    .er_entry(er_entry),
+    .IF_excp(IF_excp)
 );
 
 ID_Unit ID(
@@ -119,12 +125,11 @@ ID_Unit ID(
     .ME_Forward_Res(ME_Forward_Res),
     .WB_Forward_Res(WB_Forward_Res),
     .EX_to_ID_Ld_op(EX_to_ID_Ld_op),
-    .EX_to_ID_Sys_op(EX_to_ID_Sys_op),
-    .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
-    .WB_to_ID_Sys_op(WB_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
-    .has_int(has_int)
+    .has_int(has_int),
+    .ID_excp(ID_excp),
+    .global_flush_flag(global_flush_flag)
 );
 
 EX_Unit EX(
@@ -143,7 +148,6 @@ EX_Unit EX(
     .ME_Allow_in(ME_Allow_in),
     .EX_Forward_Res(EX_Forward_Res),
     .EX_to_ID_Ld_op(EX_to_ID_Ld_op),
-    .EX_to_ID_Sys_op(EX_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
     .csr_re(csr_re),
@@ -153,9 +157,7 @@ EX_Unit EX(
     .WB_to_EX_Bus(WB_to_EX_Bus),
     .timer_rdata (timer_rdata ),
     .timer_re    (timer_re    ),
-    .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
-    .WB_to_ID_Sys_op(WB_to_ID_Sys_op)
-    
+    .EX_excp(EX_excp)
 );
 
 ME_Unit ME(
@@ -170,10 +172,10 @@ ME_Unit ME(
     .ME_Allow_in(ME_Allow_in),
     .WB_Allow_in(WB_Allow_in),
     .ME_Forward_Res(ME_Forward_Res),
-    .ME_to_ID_Sys_op(ME_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
-    .ME_to_EX_Bus(ME_to_EX_Bus)
+    .ME_to_EX_Bus(ME_to_EX_Bus),
+    .ME_excp(ME_excp)
 );
 
 WB_Unit WB(
@@ -189,7 +191,6 @@ WB_Unit WB(
     .ME_to_WB_Valid(ME_to_WB_Valid),
     .WB_Allow_in(WB_Allow_in),
     .WB_Forward_Res(WB_Forward_Res),
-    .WB_to_ID_Sys_op(WB_to_ID_Sys_op),
     .excp_flush(excp_flush),
     .ertn_flush(ertn_flush),
     .wb_ecode(wb_ecode),
@@ -197,7 +198,8 @@ WB_Unit WB(
     .csr_we(csr_we),
     .csr_wvalue(csr_wdata),
     .csr_num(WB_csr_num),
-    .WB_to_EX_Bus(WB_to_EX_Bus)
+    .WB_to_EX_Bus(WB_to_EX_Bus),
+    .excp_commit(excp_commit)
 );
 
 CSR_Unit CSR(
@@ -222,6 +224,17 @@ CSR_Unit CSR(
     .csr_wnum    (WB_csr_num  ),
     .timer_rdata (timer_rdata ),
     .timer_re    (timer_re    )
+);
+
+Flush_Unit u_Flush_Unit(
+    .clk               (clk               ),
+    .reset             (reset             ),
+    .IF_excp           (IF_excp           ),
+    .ID_excp           (ID_excp           ),
+    .EX_excp           (EX_excp           ),
+    .ME_excp           (ME_excp           ),
+    .excp_commit       (excp_commit       ),
+    .global_flush_flag (global_flush_flag )
 );
 
 

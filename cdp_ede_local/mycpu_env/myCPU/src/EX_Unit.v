@@ -15,7 +15,6 @@ module EX_Unit (
     output wire [`default_Dest_Size-1:0] EX_dest,
     output wire [`default_Data_Size-1:0] EX_Forward_Res,
     output wire                          EX_to_ID_Ld_op,
-    output wire                          EX_to_ID_Sys_op,
     output wire                          csr_re,
     input  wire [31:0]                   csr_rvalue,
     output wire [13:0]                   csr_num,
@@ -28,8 +27,7 @@ module EX_Unit (
 
     input  wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus,
     input  wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus,
-    input  wire                          ME_to_ID_Sys_op,
-    input  wire                          WB_to_ID_Sys_op
+    output wire                          EX_excp
 );
 
 reg                   inst_rdcntid_w;
@@ -67,12 +65,13 @@ wire                  flush_flag;
 
 assign flush_flag = excp_flush | ertn_flush;
 
+
+
 assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
 assign EX_to_ID_Ld_op  = ID_Load_op;
-assign EX_to_ID_Sys_op = (ID_excp_en |inst_ertn) & EX_Valid;
 
 always @(posedge clk) begin
 
@@ -114,6 +113,17 @@ always @(posedge clk) begin
     end
 end
 
+reg after_excp;
+always @(posedge clk) begin
+    if(reset)begin
+        after_excp <= 1'b0;
+    end else if (flush_flag)begin
+        after_excp <= 1'b0;
+    end else if (EX_excp_en)begin
+        after_excp <= 1'b1;
+    end
+end
+
 wire        res_from_timer;
 wire [31:0] csr_wvalue;
 wire        csr_we;
@@ -121,7 +131,7 @@ wire        csr_we;
 wire        excp_ale;
 
 assign csr_re       = res_from_csr;
-assign csr_we       = EX_csr_we & ~ ME_to_ID_Sys_op & ~WB_to_ID_Sys_op;
+assign csr_we       = EX_csr_we & ~after_excp;
 assign EX_csr_wmask = EX_csr_wmask_en ? rj_value : 32'hFFFFFFFF;
 assign csr_num      = inst_rdcntid_w ? 14'h40 : EX_csr_num;
 assign timer_re     = ID_timer_re;
@@ -160,7 +170,7 @@ assign csr_wvalue   = rkd_value & EX_csr_wmask | ~EX_csr_wmask & csr_rdata;
 assign alu_src1 = src1_is_pc  ? pc[31:0] : rj_value;
 assign alu_src2 = src2_is_imm ? imm : rkd_value;
 
-wire alu_valid = EX_Valid & ~ME_to_ID_Sys_op & ~ WB_to_ID_Sys_op;
+wire alu_valid = EX_Valid & ~after_excp;
 
 alu u_alu(
     .clk(clk),
@@ -186,7 +196,7 @@ assign data_sram_en     = ~excp_ale;
 
 assign data_sram_we    = (mem_we == 4'b0001) ? (4'b0001 << data_sram_offset) &{4{EX_Valid}} :
                          (mem_we == 4'b0011) ? (4'b0011 << data_sram_offset) &{4{EX_Valid}}:
-                          mem_we & {4{EX_Valid}} & {4{~EX_excp_en}} & {4{~ME_to_ID_Sys_op}};
+                          mem_we & {4{EX_Valid}} & {4{~EX_excp_en}} & {4{~after_excp}};
 
 assign data_sram_wdata = (mem_we == 4'b0001) ? (rkd_value[7:0] << (8 * data_sram_offset)) : 
                          (mem_we == 4'b0011) ? (rkd_value[15:0] << (8 * data_sram_offset)) : 
@@ -198,8 +208,10 @@ assign dest_flag = {src_is_signed, mem_is_byte, mem_is_half, data_sram_offset};
 wire       EX_excp_en;
 wire [5:0] EX_excp_num;
 
-assign EX_excp_en = ID_excp_en | excp_ale;
+assign EX_excp_en = (ID_excp_en | excp_ale) & EX_Valid;
 assign EX_excp_num = {excp_ale, ID_excp_num};
+
+assign EX_excp = EX_excp_en & EX_Valid;
 
 /*
     read byte:
@@ -215,7 +227,7 @@ assign EX_excp_num = {excp_ale, ID_excp_num};
 */
 
 wire EX_gr_we;
-assign EX_gr_we = gr_we & ~EX_excp_en & ~ME_to_ID_Sys_op & ~WB_to_ID_Sys_op;
+assign EX_gr_we = gr_we & ~EX_excp_en & ~after_excp;
 
 assign final_result = res_from_csr   ? csr_rdata   : 
                       res_from_timer ? timer_rdata : alu_result;

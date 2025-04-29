@@ -16,9 +16,6 @@ module ID_Unit (
     output wire [`br_bus_Size-1:0]        br_bus,
 
     input  wire                           EX_to_ID_Ld_op,
-    input  wire                           EX_to_ID_Sys_op,
-    input  wire                           ME_to_ID_Sys_op,
-    input  wire                           WB_to_ID_Sys_op,
 
     input  wire [`default_Data_Size-1:0]  EX_Forward_Res,
     input  wire [`default_Data_Size-1:0]  ME_Forward_Res,
@@ -27,7 +24,10 @@ module ID_Unit (
     input  wire                           excp_flush,
     input  wire                           ertn_flush,
 
-    input  wire                           has_int
+    input  wire                           has_int,
+
+    output wire                           ID_excp,
+    input  wire                           global_flush_flag
 );
 
 reg [31:0] pc;
@@ -48,20 +48,19 @@ wire        stall;
 wire        ld_stall;
 wire        sys_stall;
 
-assign      sys_stall = EX_to_ID_Sys_op | ME_to_ID_Sys_op;
 
 assign      ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq) || 
                                           ((rd == EX_dest) & rd_eq) || 
                                           ((rk == EX_dest) & rk_eq));
 
-assign      ID_ReadyGo = ID_Valid & ~ld_stall &  ~sys_stall;
+assign      ID_ReadyGo = ID_Valid & ~ld_stall;
 assign      ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
 assign      ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 
 assign      flush_flag = excp_flush | ertn_flush;
 
 always @(posedge clk) begin
-    if(reset | br_taken | flush_flag)begin
+    if(reset | br_taken | global_flush_flag | flush_flag)begin
         ID_Valid <= 1'b0;
     end else if (ID_Allow_in) begin
         ID_Valid <= IF_to_ID_Valid;
@@ -366,9 +365,11 @@ assign inst_valid     = inst_add_w      |
 wire ID_excp_en;
 wire [4:0] ID_excp_num;
 
-assign excp_ine = ~inst_valid;
-assign ID_excp_en  = IF_excp_en | excp_ine | inst_syscall | inst_break | has_int;
+assign excp_ine = ~inst_valid | ~ID_Valid;
+assign ID_excp_en  = (IF_excp_en | excp_ine | inst_syscall | inst_break | has_int) & ID_Valid;
 assign ID_excp_num = {excp_ine, inst_syscall, inst_break, IF_excp_num, has_int};
+
+assign ID_excp = (ID_excp_en | inst_ertn) & ID_Valid;
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w |
                      inst_jirl | inst_bl | inst_pcaddu12i | inst_ld_b|

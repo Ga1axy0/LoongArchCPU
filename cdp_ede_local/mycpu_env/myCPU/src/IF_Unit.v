@@ -16,21 +16,15 @@ module IF_Unit (
     input  wire                          excp_flush,
     input  wire                          ertn_flush,
     input  wire [31:0]                   ex_entry,
-    input  wire [31:0]                   er_entry          
+    input  wire [31:0]                   er_entry,
+    output wire                          IF_excp   
 );
 
 wire excp_adef;
 wire excp_en;
 wire excp_num;
 
-/*
-    excp_num[2:0]
-    3'd0 -> adef
-    3'd1 -> ale
-    3'd2 -> ine
-    3'd3 -> brk
-    3'd4 -> sys
-*/
+assign IF_excp = excp_en & IF_Valid;
 
 wire        br_taken;
 wire        br_stall;

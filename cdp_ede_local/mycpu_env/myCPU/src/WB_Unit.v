@@ -15,7 +15,6 @@ module WB_Unit (
     output wire [`WB_to_RF_Bus_Size-1:0] WB_to_RF_Bus,
     output wire [`default_Dest_Size-1:0] WB_dest,
     output wire [`default_Data_Size-1:0] WB_Forward_Res,
-    output wire                          WB_to_ID_Sys_op,
 
     output wire                          ertn_flush,
     output wire                          excp_flush,
@@ -25,25 +24,28 @@ module WB_Unit (
     output wire                          csr_we,
     output wire [31:0]                   csr_wvalue,
     output wire [13:0]                   csr_num,
-    output wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus
+    output wire [`WB_to_EX_Bus_Size-1:0] WB_to_EX_Bus,
+    output wire                          excp_commit
     );
 
 reg [31:0]  pc;
 reg         gr_we;
 reg [4:0]   dest;
 reg [31:0]  final_result;
-reg         inst_ertn;
 reg         WB_csr_we;
 reg [31:0]  WB_csr_wvalue;
 reg [13:0]  WB_csr_num;
 reg [5:0]   ME_excp_num;
 reg         ME_excp_en;
+reg         inst_ertn;
 
 wire         WB_ReadyGo;
 reg          WB_Valid;
 wire         rf_we;
 wire [4:0]   rf_waddr;
 wire [31:0]  rf_wdata;
+
+
 
 
 assign WB_ReadyGo = 1'b1;
@@ -77,12 +79,10 @@ wire       WB_excp_en;
 wire [5:0] WB_excp_num;
 wire       badv_we;
 
-assign WB_excp_en  = ME_excp_en;
+assign WB_excp_en  = ME_excp_en & WB_Valid;
 assign WB_excp_num = ME_excp_num;
 
-
-
-assign WB_to_ID_Sys_op = (WB_excp_en | inst_ertn) & WB_Valid;
+assign excp_commit = WB_excp_en & WB_Valid;
 
 assign ertn_flush = inst_ertn & WB_Valid;
 
