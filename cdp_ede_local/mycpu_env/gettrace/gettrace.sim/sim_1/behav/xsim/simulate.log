@@ -228,4 +228,4 @@ Test begin!
 gettrace end!
 ----Succeed in generating trace file!
 $finish called at time : 1670725 ns : File "C:/Users/28646/Desktop/LoongArchCPU/cdp_ede_local/mycpu_env/gettrace/src/tb_top.v" Line 224
-INFO: xsimkernel Simulation Memory Usage: 24880 KB (Peak: 24880 KB), Simulation CPU Usage: 12796 ms
+INFO: xsimkernel Simulation Memory Usage: 24392 KB (Peak: 24392 KB), Simulation CPU Usage: 12765 ms
