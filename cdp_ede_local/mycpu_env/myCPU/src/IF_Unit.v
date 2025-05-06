@@ -19,38 +19,25 @@ module IF_Unit (
     input  wire [31:0]                   er_entry          
 );
 
+
+/* pre-IF stage */
+
 wire excp_adef;
 wire excp_en;
 wire excp_num;
-
-/*
-    excp_num[2:0]
-    3'd0 -> adef
-    3'd1 -> ale
-    3'd2 -> ine
-    3'd3 -> brk
-    3'd4 -> sys
-*/
 
 wire        br_taken;
 wire        br_stall;
 wire [31:0] br_target;
 wire [31:0] seq_pc;
 wire [31:0] nextpc;
-wire [31:0] inst;
 reg  [31:0] pc;
 
-reg         IF_Valid;
-wire        IF_Allow_in;
-wire        IF_ReadyGO;
 wire        to_IF_Valid;
 wire        flush_flag;
 
 assign flush_flag = ertn_flush | excp_flush;
 
-assign IF_ReadyGO = ~br_taken;
-assign IF_Allow_in = !IF_Valid || IF_ReadyGO && ID_Allow_in;
-assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 
 assign to_IF_Valid = ~reset;
 assign seq_pc                 = pc + 3'h4;
@@ -64,15 +51,21 @@ assign excp_num  = excp_adef;
 
 assign {br_taken , br_target , br_stall} = br_bus;
 
-
 always @(posedge clk) begin
     if (reset) begin
         pc <= 32'h1bfffffc;
     end
-    else if ((br_taken || ID_Allow_in)&& to_IF_Valid) begin
+    else if ((br_taken || ID_Allow_in) && to_IF_Valid) begin
         pc <= nextpc;
     end
 end
+
+assign inst_sram_en    = (br_taken || IF_Allow_in) && to_IF_Valid;
+assign inst_sram_we    = 4'b0;
+assign inst_sram_addr  = nextpc;
+assign inst_sram_wdata = 32'b0;
+
+/* IF stage */
 
 always @(posedge clk) begin
     if(reset)begin
@@ -82,13 +75,16 @@ always @(posedge clk) begin
     end
 end
 
-assign inst_sram_en    = (br_taken || IF_Allow_in) && to_IF_Valid;
-assign inst_sram_we    = 4'b0;
-assign inst_sram_addr  = nextpc;
-assign inst_sram_wdata = 32'b0;
+wire [31:0] inst;
+reg         IF_Valid;
+wire        IF_Allow_in;
+wire        IF_ReadyGO;
+
+assign IF_ReadyGO = ~br_taken;
+assign IF_Allow_in = !IF_Valid || IF_ReadyGO && ID_Allow_in;
+assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
+
 assign inst            = inst_sram_rdata;
-
-
 
 assign IF_to_ID_Bus    = {
                           excp_en,      //[65:65]
