@@ -5,11 +5,17 @@ module IF_Unit (
     input  wire                          ID_Allow_in,
     input  wire [`br_bus_Size-1      :0] br_bus,
 
-    output wire                          inst_sram_en,
-    output wire [3:0]                    inst_sram_we,
+    
+    output wire                          inst_sram_req,
+    output wire                          inst_sram_wr,
+    output wire                          inst_sram_size,
     output wire [31:0]                   inst_sram_addr,
+    output wire                          inst_sram_wstrb,
     output wire [31:0]                   inst_sram_wdata,
+    output wire                          inst_sram_addr_ok,
+    input  wire                          inst_sram_data_ok,
     input  wire [31:0]                   inst_sram_rdata,
+
     output wire [`IF_to_ID_Bus_Size-1:0] IF_to_ID_Bus,
     output wire                          IF_to_ID_Valid,
 
@@ -34,12 +40,12 @@ wire [31:0] nextpc;
 reg  [31:0] pc;
 
 wire        to_IF_Valid;
-wire        flush_flag;
+wire        pre_IF_ReadyGo;
 
-assign flush_flag = ertn_flush | excp_flush;
+assign pre_IF_ReadyGo = inst_sram_req & inst_sram_addr_ok;
+assign to_IF_Valid    = ~reset & pre_IF_ReadyGo;
 
 
-assign to_IF_Valid = ~reset;
 assign seq_pc                 = pc + 3'h4;
 assign nextpc                 = excp_flush ? ex_entry  :
                                 ertn_flush ? er_entry  :
@@ -55,17 +61,35 @@ always @(posedge clk) begin
     if (reset) begin
         pc <= 32'h1bfffffc;
     end
-    else if ((br_taken || ID_Allow_in) && to_IF_Valid) begin
+    else if ((br_taken || ID_Allow_in) && to_IF_Valid && ~br_stall) begin
         pc <= nextpc;
+    end
+end 
+
+assign inst_sram_req   = (br_taken || IF_Allow_in) && to_IF_Valid;
+assign inst_sram_wr    = |inst_sram_wstrb;
+assign inst_sram_size  = 2'b10;
+assign inst_sram_addr  = nextpc;
+assign inst_sram_wstrb = 4'b0;
+assign inst_sram_wdata = 32'b0;
+
+/* pre-IF excp cancel*/
+reg IF_cancel;
+
+always @(posedge clk) begin
+    if(reset)begin
+        IF_cancel <= 1'b0;
+    end else if(flush_flag & (to_IF_Valid | (!IF_Allow_in & !IF_ReadyGO)))begin
+        IF_cancel <= 1'b1;
+    end else if(inst_sram_data_ok)begin
+        IF_cancel <= 1'b0;
     end
 end
 
-assign inst_sram_en    = (br_taken || IF_Allow_in) && to_IF_Valid;
-assign inst_sram_we    = 4'b0;
-assign inst_sram_addr  = nextpc;
-assign inst_sram_wdata = 32'b0;
-
 /* IF stage */
+
+wire flush_flag;
+assign flush_flag = excp_flush | ertn_flush;
 
 always @(posedge clk) begin
     if(reset)begin
@@ -75,22 +99,37 @@ always @(posedge clk) begin
     end
 end
 
-wire [31:0] inst;
-reg         IF_Valid;
-wire        IF_Allow_in;
-wire        IF_ReadyGO;
+wire [31:0]                   inst;
+reg                           IF_Valid;
+wire                          IF_Allow_in;
+wire                          IF_ReadyGO;
+reg                           IF_buf_en;
+reg  [`IF_to_ID_Bus_Size-1:0] IF_buf;
+wire [`IF_to_ID_Bus_Size-1:0] to_ID_Bus;
 
-assign IF_ReadyGO = ~br_taken;
-assign IF_Allow_in = !IF_Valid || IF_ReadyGO && ID_Allow_in;
+assign IF_ReadyGO     = (inst_sram_data_ok & ~br_taken & ~IF_cancel) | IF_buf_en;
+assign IF_Allow_in    = !IF_Valid || IF_ReadyGO && ID_Allow_in;
 assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 
-assign inst            = inst_sram_rdata;
+assign inst           = inst_sram_rdata;
 
-assign IF_to_ID_Bus    = {
-                          excp_en,      //[65:65]
-                          excp_num,     //[64:64]
-                          pc,           //[63:0]  
-                          inst          //[31:0]
-                          };
+assign to_ID_Bus      = IF_buf_en ? IF_buf : {
+                                                excp_en,      //[65:65]
+                                                excp_num,     //[64:64]
+                                                pc,           //[63:0]  
+                                                inst          //[31:0]
+                                                };
+
+always @(posedge clk) begin
+    if(reset | flush_flag | IF_cancel)begin
+        IF_buf_en <= 1'b0;
+        IF_buf    <= 66'b0;
+    end else if(IF_ReadyGO & !ID_Allow_in)begin
+        IF_buf_en <= 1'b1;
+        IF_buf    <= to_ID_Bus;
+    end
+end
+
+assign IF_to_ID_Bus = to_ID_Bus;
 
 endmodule

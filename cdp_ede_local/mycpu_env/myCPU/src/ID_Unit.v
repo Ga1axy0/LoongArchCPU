@@ -514,7 +514,9 @@ assign br_taken = (   (inst_beq  &&  rj_eq_rd)
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bltu || inst_bge || inst_bgeu) ? (pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
 
-assign br_bus = {br_taken , br_target, stall};
+wire br_stall;
+assign br_stall = br_taken & ~ID_ReadyGo;
+assign br_bus = {br_taken , br_target, br_stall};
 
 
 assign csr_wmask_en = inst_csrxchg;
