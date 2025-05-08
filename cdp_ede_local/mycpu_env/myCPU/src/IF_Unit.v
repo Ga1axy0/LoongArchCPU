@@ -8,7 +8,7 @@ module IF_Unit (
     
     output wire                          inst_sram_req,
     output wire                          inst_sram_wr,
-    output wire                          inst_sram_size,
+    output wire [1:0]                    inst_sram_size,
     output wire [31:0]                   inst_sram_addr,
     output wire                          inst_sram_wstrb,
     output wire [31:0]                   inst_sram_wdata,
@@ -42,7 +42,7 @@ reg  [31:0] pc;
 wire        to_IF_Valid;
 wire        pre_IF_ReadyGo;
 
-assign pre_IF_ReadyGo = inst_sram_req & inst_sram_addr_ok;
+assign pre_IF_ReadyGo = inst_sram_req & inst_sram_addr_ok; 
 assign to_IF_Valid    = ~reset & pre_IF_ReadyGo;
 
 
@@ -61,12 +61,12 @@ always @(posedge clk) begin
     if (reset) begin
         pc <= 32'h1bfffffc;
     end
-    else if ((br_taken || ID_Allow_in) && to_IF_Valid && ~br_stall) begin
+    else if (IF_Allow_in & to_IF_Valid) begin
         pc <= nextpc;
     end
 end 
 
-assign inst_sram_req   = (br_taken || IF_Allow_in) && to_IF_Valid;
+assign inst_sram_req   = ~reset & ~br_stall & IF_Allow_in;
 assign inst_sram_wr    = |inst_sram_wstrb;
 assign inst_sram_size  = 2'b10;
 assign inst_sram_addr  = nextpc;
@@ -107,7 +107,7 @@ reg                           IF_buf_en;
 reg  [`IF_to_ID_Bus_Size-1:0] IF_buf;
 wire [`IF_to_ID_Bus_Size-1:0] to_ID_Bus;
 
-assign IF_ReadyGO     = (inst_sram_data_ok & ~br_taken & ~IF_cancel) | IF_buf_en;
+assign IF_ReadyGO     = inst_sram_data_ok | IF_buf_en;
 assign IF_Allow_in    = !IF_Valid || IF_ReadyGO && ID_Allow_in;
 assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
 

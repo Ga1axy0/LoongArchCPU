@@ -193,9 +193,8 @@ assign data_sram_req    = ~excp_ale & EX_to_ME_Valid & (ID_Load_op | ID_Store_op
 
 assign data_sram_wr     = |data_sram_wstrb;
 
-assign datasramsize     = mem_is_byte ? 2'b00 :
-                          mem_is_half ? 2'b01 :
-                          mem_is_word ? 2'b10;
+assign data_sram_size     = mem_is_byte ? 2'b00 :
+                            mem_is_half ? 2'b01 : 2'b10;
 
 assign data_sram_wstrb  = (mem_we == 4'b0001) ? (4'b0001 << data_sram_offset) &{4{EX_Valid}} :
                           (mem_we == 4'b0011) ? (4'b0011 << data_sram_offset) &{4{EX_Valid}}:
