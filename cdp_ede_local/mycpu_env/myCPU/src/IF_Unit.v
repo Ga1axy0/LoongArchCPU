@@ -103,7 +103,8 @@ wire [31:0]                   inst;
 reg                           IF_Valid;
 wire                          IF_Allow_in;
 wire                          IF_ReadyGO;
-reg                           IF_buf_en;
+wire                          IF_buf_en;
+reg                           is_buf;
 reg  [`IF_to_ID_Bus_Size-1:0] IF_buf;
 wire [`IF_to_ID_Bus_Size-1:0] to_ID_Bus;
 
@@ -120,13 +121,17 @@ assign to_ID_Bus      = IF_buf_en ? IF_buf : {
                                                 inst          //[31:0]
                                                 };
 
+assign IF_buf_en = is_buf;
+
 always @(posedge clk) begin
     if(reset | flush_flag | IF_cancel)begin
-        IF_buf_en <= 1'b0;
+        is_buf <= 1'b0;
         IF_buf    <= 66'b0;
     end else if(IF_ReadyGO & !ID_Allow_in)begin
-        IF_buf_en <= 1'b1;
+        is_buf    <= 1'b1;
         IF_buf    <= to_ID_Bus;
+    end else if(IF_to_ID_Valid) begin
+        is_buf    <=1'b0;
     end
 end
 
