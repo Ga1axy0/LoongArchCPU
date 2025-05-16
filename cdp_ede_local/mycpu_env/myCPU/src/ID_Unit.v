@@ -16,6 +16,7 @@ module ID_Unit (
     output wire [`br_bus_Size-1:0]        br_bus,
 
     input  wire                           EX_to_ID_Ld_op,
+    input  wire                           ME_to_ID_ld_op,  
     input  wire                           EX_to_ID_Sys_op,
     input  wire                           ME_to_ID_Sys_op,
     input  wire                           WB_to_ID_Sys_op,
@@ -23,6 +24,8 @@ module ID_Unit (
     input  wire [`default_Data_Size-1:0]  EX_Forward_Res,
     input  wire [`default_Data_Size-1:0]  ME_Forward_Res,
     input  wire [`default_Data_Size-1:0]  WB_Forward_Res,
+
+    input  wire                           ME_Forward_valid,
 
     input  wire                           excp_flush,
     input  wire                           ertn_flush,
@@ -38,23 +41,26 @@ reg        IF_excp_en;
 wire excp_ine;
 
 reg        ID_Valid;
+reg        ld_stall;
 wire       ID_ReadyGo;
 wire       flush_flag;
 
 wire        rd_eq;
 wire        rj_eq;
 wire        rk_eq;
-wire        stall;      
-wire        ld_stall;
+wire        stall; 
+wire        ME_ld_stall;     
+wire        EX_ld_stall;
 wire        sys_stall;
 
 assign      sys_stall = EX_to_ID_Sys_op | ME_to_ID_Sys_op;
 
-assign      ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq) || 
-                                          ((rd == EX_dest) & rd_eq) || 
-                                          ((rk == EX_dest) & rk_eq));
+assign      EX_ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq)|| 
+                                            ((rd == EX_dest) & rd_eq) || 
+                                            ((rk == EX_dest) & rk_eq));
 
-assign      ID_ReadyGo = ID_Valid & ~ld_stall &  ~sys_stall;
+
+assign      ID_ReadyGo = ID_Valid & ~ld_stall & ~sys_stall & ~EX_ld_stall;
 assign      ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
 assign      ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 
@@ -63,6 +69,7 @@ assign      flush_flag = excp_flush | ertn_flush;
 always @(posedge clk) begin
     if(reset | br_taken | flush_flag)begin
         ID_Valid <= 1'b0;
+        ld_stall <= 1'b0;
     end else if (ID_Allow_in) begin
         ID_Valid <= IF_to_ID_Valid;
     end
@@ -70,6 +77,12 @@ always @(posedge clk) begin
     if(IF_to_ID_Valid && ID_Allow_in)begin
         {IF_excp_en, IF_excp_num, pc, inst} <= IF_to_ID_Bus;
     end 
+
+    if(EX_ld_stall)begin
+        ld_stall <= 1'b1;
+    end else if(ME_Forward_valid)begin
+        ld_stall <= 1'b0;
+    end
     
 end
 
@@ -509,12 +522,14 @@ assign br_taken = (   (inst_beq  &&  rj_eq_rd)
                    || inst_b
                    || ((inst_bge | inst_bgeu) && rj_gt_rd)
                    || ((inst_blt | inst_bltu) && !rj_gt_rd)
-) && ID_Valid && ~ld_stall;
+) && ID_Valid && ~EX_ld_stall;
 
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bltu || inst_bge || inst_bgeu) ? (pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
 
-assign br_bus = {br_taken , br_target, stall};
+wire br_stall;
+assign br_stall = br_taken & ~ID_ReadyGo;
+assign br_bus = {br_taken , br_target, br_stall};
 
 
 assign csr_wmask_en = inst_csrxchg;
