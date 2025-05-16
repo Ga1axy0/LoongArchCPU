@@ -10,9 +10,9 @@ module IF_Unit (
     output wire                          inst_sram_wr,
     output wire [1:0]                    inst_sram_size,
     output wire [31:0]                   inst_sram_addr,
-    output wire                          inst_sram_wstrb,
+    output wire [ 3:0]                   inst_sram_wstrb,
     output wire [31:0]                   inst_sram_wdata,
-    output wire                          inst_sram_addr_ok,
+    input  wire                          inst_sram_addr_ok,
     input  wire                          inst_sram_data_ok,
     input  wire [31:0]                   inst_sram_rdata,
 
@@ -47,9 +47,12 @@ assign to_IF_Valid    = ~reset & pre_IF_ReadyGo;
 
 
 assign seq_pc                 = pc + 3'h4;
-assign nextpc                 = excp_flush ? ex_entry  :
-                                ertn_flush ? er_entry  :
-                                br_taken   ? br_target : seq_pc;
+assign nextpc                 = excp_flush      ?    ex_entry       :
+                                ertn_flush      ?    er_entry       :
+                                br_taken        ?    br_target      : 
+                                pre_excp_flush  ?    pre_ex_entry   :
+                                pre_ertn_flush  ?    pre_er_entry   :
+                                pre_br_taken    ?    pre_br_target  : seq_pc;
 
 assign excp_adef = |nextpc[1:0];
 assign excp_en   = excp_adef;
@@ -57,16 +60,57 @@ assign excp_num  = excp_adef;
 
 assign {br_taken , br_target , br_stall} = br_bus;
 
+reg pre_br_taken;
+reg pre_excp_flush;
+reg pre_ertn_flush;
+
+reg [31:0] pre_br_target;
+reg [31:0] pre_ex_entry;
+reg [31:0] pre_er_entry;
+
+always @(posedge clk) begin
+    if(reset |(to_IF_Valid & IF_Allow_in))begin
+        pre_br_taken <= 1'b0;
+        pre_excp_flush <= 1'b0;
+        pre_ertn_flush <= 1'b0;
+    end else if (excp_flush)begin
+        pre_br_taken <= 1'b0;
+        pre_ertn_flush <= 1'b0;
+        pre_excp_flush <= 1'b1;
+        pre_ex_entry <= ex_entry;
+    end else if(ertn_flush)begin
+        pre_br_taken <= 1'b0;
+        pre_excp_flush <= 1'b0;
+        pre_ertn_flush <= 1'b1;
+        pre_er_entry <= er_entry;
+    end else if (br_taken) begin
+        pre_br_taken <= 1'b1;
+        pre_br_target <= br_target;
+    end
+end
+
 always @(posedge clk) begin
     if (reset) begin
         pc <= 32'h1bfffffc;
     end
-    else if (IF_Allow_in & to_IF_Valid) begin
+    else if ((br_taken || IF_Allow_in) && to_IF_Valid && ~br_stall) begin
         pc <= nextpc;
-    end
+    end 
 end 
 
-assign inst_sram_req   = ~reset & ~br_stall & IF_Allow_in;
+reg inst_req;
+
+always @(posedge clk) begin
+    if(reset | br_stall)begin
+        inst_req <= 1'b0;
+    end else if(inst_sram_addr_ok)begin
+        inst_req <= 1'b0;
+    end else if(IF_Allow_in)begin
+        inst_req <= 1'b1;
+    end
+end
+
+assign inst_sram_req   = inst_req & ~flush_flag;
 assign inst_sram_wr    = |inst_sram_wstrb;
 assign inst_sram_size  = 2'b10;
 assign inst_sram_addr  = nextpc;
@@ -108,9 +152,9 @@ reg                           is_buf;
 reg  [`IF_to_ID_Bus_Size-1:0] IF_buf;
 wire [`IF_to_ID_Bus_Size-1:0] to_ID_Bus;
 
-assign IF_ReadyGO     = inst_sram_data_ok | IF_buf_en;
+assign IF_ReadyGO     = (inst_sram_data_ok | IF_buf_en) & ~br_taken;
 assign IF_Allow_in    = !IF_Valid || IF_ReadyGO && ID_Allow_in;
-assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO;
+assign IF_to_ID_Valid = IF_Valid && IF_ReadyGO && ~IF_cancel;
 
 assign inst           = inst_sram_rdata;
 
@@ -125,13 +169,13 @@ assign IF_buf_en = is_buf;
 
 always @(posedge clk) begin
     if(reset | flush_flag | IF_cancel)begin
-        is_buf <= 1'b0;
+        is_buf    <= 1'b0;
         IF_buf    <= 66'b0;
     end else if(IF_ReadyGO & !ID_Allow_in)begin
         is_buf    <= 1'b1;
         IF_buf    <= to_ID_Bus;
     end else if(IF_to_ID_Valid) begin
-        is_buf    <=1'b0;
+        is_buf    <= 1'b0;
     end
 end
 

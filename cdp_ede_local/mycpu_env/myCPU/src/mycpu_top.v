@@ -42,7 +42,10 @@ wire         ID_to_EX_Valid;
 wire         EX_to_ME_Valid;
 wire         ME_to_WB_Valid;
 
+wire         ME_Forward_valid;
+
 wire         EX_to_ID_Ld_op; 
+wire         ME_to_ID_ld_op;        
 wire         EX_to_ID_Sys_op;
 wire         ME_to_ID_Sys_op;
 wire         WB_to_ID_Sys_op;    
@@ -128,6 +131,7 @@ ID_Unit ID(
     .WB_to_RF_Bus    (WB_to_RF_Bus    ),
     .br_bus          (br_bus          ),
     .EX_to_ID_Ld_op  (EX_to_ID_Ld_op  ),
+    .ME_to_ID_ld_op  (ME_to_ID_ld_op  ),
     .EX_to_ID_Sys_op (EX_to_ID_Sys_op ),
     .ME_to_ID_Sys_op (ME_to_ID_Sys_op ),
     .WB_to_ID_Sys_op (WB_to_ID_Sys_op ),
@@ -136,7 +140,8 @@ ID_Unit ID(
     .WB_Forward_Res  (WB_Forward_Res  ),
     .excp_flush      (excp_flush      ),
     .ertn_flush      (ertn_flush      ),
-    .has_int         (has_int         )
+    .has_int         (has_int         ),
+    .ME_Forward_valid(ME_Forward_valid)
 );
 
 EX_Unit EX(
@@ -153,8 +158,8 @@ EX_Unit EX(
     .EX_to_ID_Ld_op    (EX_to_ID_Ld_op    ),
     .EX_to_ID_Sys_op   (EX_to_ID_Sys_op   ),
     .csr_re            (csr_re            ),
-    .csr_rvalue        (csr_rvalue        ),
-    .csr_num           (csr_num           ),
+    .csr_rvalue        (csr_rdata         ),
+    .csr_num           (EX_csr_num        ),
     .excp_flush        (excp_flush        ),
     .ertn_flush        (ertn_flush        ),
     .timer_re          (timer_re          ),
@@ -185,11 +190,13 @@ ME_Unit ME(
     .ME_dest           (ME_dest           ),
     .ME_Forward_Res    (ME_Forward_Res    ),
     .ME_to_ID_Sys_op   (ME_to_ID_Sys_op   ),
+    .ME_to_ID_ld_op    (ME_to_ID_ld_op    ),
     .excp_flush        (excp_flush        ),
     .ertn_flush        (ertn_flush        ),
     .ME_to_EX_Bus      (ME_to_EX_Bus      ),
     .data_sram_rdata   (data_sram_rdata   ),
-    .data_sram_addr_ok (data_sram_addr_ok )
+    .data_sram_data_ok (data_sram_data_ok ),
+    .ME_Forward_Valid  (ME_Forward_valid  )
 );
 
 WB_Unit WB(
@@ -211,8 +218,8 @@ WB_Unit WB(
     .wb_ecode          (wb_ecode          ),
     .wb_esubcode       (wb_esubcode       ),
     .csr_we            (csr_we            ),
-    .csr_wvalue        (csr_wvalue        ),
-    .csr_num           (csr_num           ),
+    .csr_wvalue        (csr_wdata         ),
+    .csr_num           (WB_csr_num        ),
     .WB_to_EX_Bus      (WB_to_EX_Bus      )
 );
 

@@ -12,7 +12,9 @@ module ME_Unit (
     output wire [`ME_to_WB_Bus_Size-1:0] ME_to_WB_Bus,
     output wire [`default_Dest_Size-1:0] ME_dest,
     output wire [`default_Data_Size-1:0] ME_Forward_Res,
+    output wire                          ME_Forward_Valid,
     output wire                          ME_to_ID_Sys_op,
+    output wire                          ME_to_ID_ld_op,
 
     input  wire                          excp_flush,
     input  wire                          ertn_flush,
@@ -20,7 +22,7 @@ module ME_Unit (
     output wire [`ME_to_EX_Bus_Size-1:0] ME_to_EX_Bus,
 
     input  wire [31:0]                   data_sram_rdata,
-    input  wire                          data_sram_addr_ok
+    input  wire                          data_sram_data_ok
 );
 
 wire       ME_ReadyGO;
@@ -29,11 +31,15 @@ wire       flush_flag;
 
 assign     flush_flag = excp_flush | ertn_flush;
 
-assign ME_ReadyGO = (ID_load_op | ID_store_op) ? data_sram_addr_ok : 1'b1;
+assign ME_Forward_Valid = ME_to_WB_Valid;
+
+assign ME_ReadyGO = (ID_load_op | ID_store_op) ? data_sram_data_ok | EX_excp_num[5] : 1'b1;
 assign ME_Allow_in = !ME_Valid || ME_ReadyGO && WB_Allow_in;
 assign ME_to_WB_Valid = ME_Valid && ME_ReadyGO;
 
-assign ME_dest = dest & {5{ME_Valid}} & {5{gr_we}};
+assign ME_dest = dest & {5{gr_we}};
+
+assign ME_to_ID_ld_op = ID_load_op;
 
 reg [31:0] pc;
 reg        ID_load_op;
