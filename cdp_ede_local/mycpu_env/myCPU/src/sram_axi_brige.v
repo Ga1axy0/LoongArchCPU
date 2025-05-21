@@ -25,7 +25,7 @@ module sram_axi_brige (
     //axi read address channel
     input  wire         aclk,
     input  wire         aresetn,
-    output wire         arid,
+    output wire [ 3:0]  arid,
     output wire [31:0]  araddr,
     output wire [ 7:0]  arlen,
     output wire [ 2:0]  arsize,
@@ -35,7 +35,7 @@ module sram_axi_brige (
     output wire [ 2:0]  arprot,
     output wire         arvalid,
     input  wire         arready,
-    //axi read data channel
+    //axi read response channel
     input  wire [ 3:0]  rid,
     input  wire [31:0]  rdata,
     input  wire [ 1:0]  rresp,
@@ -102,24 +102,295 @@ localparam EXOKAY = 2'b01;
 localparam SLVERR = 2'b10;
 localparam DECERR = 2'b11;
 
-//---------------------------------------------------//
+//--------------- constant assignment ---------------//
+
+//axi read address channel
+assign arlen    = 8'b0;
+assign arburst  = INCR;
+assign arlock   = Normal_access;
+assign arcache  = cache_unsupported;
+assign arprot   = Protection_unsupported;
+
+//axi write address channel
+assign awid     = 4'b1;
+assign awlen    = 8'b0;
+assign awburst  = INCR;
+assign awlock   = Normal_access;
+assign awcache  = cache_unsupported;
+assign awprot   = Protection_unsupported;
+
+//axi write data channel
+assign wid      = 4'b1;
+assign wlast    = 1'b1;
+
+//---------------------- Global -----------------------//
+
+//Size transitioner
+//only suppor max to 4 byte, because of 32b CPU 
+wire [2:0] inst_size;
+wire [2:0] data_size;
+assign inst_size = {1'b0,inst_sram_size};
+assign data_size = {1'b0,data_sram_size};
+
+//interface connection
+assign inst_sram_addr_ok = r_rinst_sram_addr_ok;
+assign inst_sram_data_ok = r_rinst_sram_data_ok;
+assign data_sram_addr_ok = r_rdata_sram_addr_ok | r_wdata_sram_addr_ok;
+assign data_sram_data_ok = r_rdata_sram_data_ok  | r_wdata_sram_data_ok;
 
 
+//variable defination
+wire inst_read_req;
+wire data_read_req;
+wire data_write_req;
+assign inst_read_req = inst_sram_req & ~inst_sram_wr;
+assign data_read_req = data_sram_req & ~data_sram_wr;
+assign data_write_req = data_sram_req & data_sram_wr;
 
-//------------- axi read address chanel -------------//
+//------------- axi read address channel -------------//
 //Localparam defination
-wire ar_cur;
+reg [2:0]  ar_cur;
+
+localparam ar_IDLE = 3'b000;
+localparam ar_REQD = 3'b001;
+localparam ar_REQI = 3'b010;
+localparam ar_AUTI = 3'b011;
+localparam ar_AUTD = 3'b100;
 
 //Interface definaton
-reg r_arvalid;
+reg        r_arvalid;
+reg [ 3:0] r_arid;
+reg [31:0] r_araddr;
+reg [2:0]  r_arsize;
+reg        r_rdata_sram_addr_ok;
+reg        r_rinst_sram_addr_ok;
+
 
 //Interface connection
-assign arvalid = r_arvalid;
+assign arvalid              = r_arvalid;
+assign araddr               = r_araddr;
+assign arsize               = r_arsize;
+assign arid                 = r_arid;
 
 //State machine
 always @(posedge aclk) begin
     if(~aresetn)begin
         r_arvalid <= 1'b0;
+        ar_cur    <= ar_IDLE;
+    end else begin
+        case (ar_cur)
+            ar_IDLE:begin
+                if(data_read_req)
+                    ar_cur <= ar_REQD;
+                else if (inst_read_req)
+                    ar_cur <= ar_REQI;
+            end
+            ar_REQD:begin
+                r_arid      <= 4'b0001;
+                r_araddr    <= data_sram_addr;
+                r_arsize    <= data_size;
+                r_arvalid   <= 1'b1;
+                ar_cur      <= ar_AUTD;
+            end
+            ar_REQI:begin
+                r_arid      <= 4'b0000;
+                r_araddr    <= inst_sram_addr;
+                r_arsize    <= inst_size;
+                r_arvalid   <= 1'b1;
+                ar_cur      <= ar_AUTI;
+            end
+            ar_AUTD:begin
+                if(arready & arvalid)begin
+                    r_rdata_sram_addr_ok <= 1'b1;
+                    ar_cur               <= ar_IDLE;
+                    r_arvalid            <= 1'b0;
+                end
+            end
+            ar_AUTI:begin
+                if(arready & arvalid)begin
+                    r_rinst_sram_addr_ok <= 1'b1;
+                    ar_cur               <= ar_IDLE;
+                    r_arvalid            <= 1'b0;
+                end
+            end
+
+        endcase
+    end
+end
+
+//---------- axi write address & data channel ----------//
+//Localparam defination
+reg [1:0] w_cur;
+
+localparam w_IDLE = 2'b00;
+localparam w_REQ  = 2'b01;
+localparam w_AAUT = 2'b10;
+localparam w_DAUT = 2'b11;
+
+//Interface definaton
+reg        r_awvalid;
+reg        r_wvalid;
+reg [31:0] r_awaddr;
+reg [31:0] r_wdata;
+reg [ 3:0] r_wstrb;
+reg [ 2:0] r_awsize;
+reg        r_wdata_sram_addr_ok;
+
+
+//Interface connection
+assign awvalid              = r_awvalid;
+assign awaddr               = r_awaddr;
+assign awsize               = r_awsize;
+
+assign wvalid               = r_wvalid;
+assign wstrb                = r_wstrb;
+assign wdata                = r_wdata;
+
+//State machine
+always @(posedge aclk) begin
+    if(~aresetn)begin
+        r_awvalid <= 1'b0;
+        w_cur    <= w_IDLE;
+    end else begin
+        case (w_cur)
+            w_IDLE:begin
+                if(data_write_req)begin
+                    w_cur <= w_REQ;
+                end
+            end
+            w_REQ:begin
+                r_awaddr    <= data_sram_addr;
+                r_awsize    <= data_size;
+                r_awvalid   <= 1'b1;
+                w_cur       <= w_AAUT;
+            end
+            w_AAUT:begin
+                if(awready & awvalid)begin
+                    r_wdata_sram_addr_ok <= 1'b1;
+                    r_wvalid             <= 1'b1;
+                    w_cur                <= w_DAUT;
+                    r_awvalid            <= 1'b0;
+                end
+            end
+            w_DAUT:begin
+                if(wvalid & wready)begin
+                    r_wdata     <= data_sram_wdata;
+                    r_wstrb     <= data_sram_wstrb;
+                    w_cur       <= w_IDLE;
+                    r_wvalid    <= 1'b0;
+                end
+            end
+        endcase
+    end
+end
+
+//----------- axi read response channel -----------//
+//Localparam defination
+reg [2:0] r_cur;
+
+localparam r_IDLE = 3'b000;
+localparam r_PEDI = 3'b001;
+localparam r_PEDD = 3'b010;
+localparam r_AUTD = 3'b011;
+localparam r_AUTI = 3'b100;
+
+
+//Interface definaton
+reg         r_rready;
+reg [31:0]  r_data_sram_rdata;
+reg [31:0]  r_inst_sram_rdata;
+reg         r_rdata_sram_data_ok;
+reg         r_rinst_sram_data_ok;
+
+//Interface connection
+assign rready               = r_rready;
+assign inst_sram_rdata      = r_inst_sram_rdata;
+assign data_sram_rdata      = r_data_sram_rdata;
+
+
+//State machine
+always @(posedge aclk) begin
+    if(~aresetn)begin
+        r_rready <= 1'b0;
+        r_cur    <= r_IDLE;
+    end else begin
+        case (r_cur)
+            r_IDLE:begin
+                if(data_read_req)
+                    r_cur <= r_PEDD;
+                else if(inst_read_req)
+                    r_cur <= r_PEDI;
+            end
+            r_PEDD:begin
+                r_rready <= 1'b1;
+                r_cur    <= r_AUTD;
+            end
+            r_PEDI:begin
+                r_rready <= 1'b1;
+                r_cur    <= r_AUTI;
+            end
+            r_AUTD:begin
+                if(rready & rvalid & rid == 4'b0001)begin
+                    r_data_sram_rdata       <= rdata;
+                    r_cur                   <= r_IDLE;
+                    r_rdata_sram_data_ok    <= 1'b1;
+                    r_rready                <= 1'b0;
+                end
+            end
+            r_AUTI:begin
+                if(rready & rvalid & rid == 4'b0000)begin
+                    r_inst_sram_rdata       <= rdata;
+                    r_cur                   <= r_IDLE;
+                    r_rinst_sram_data_ok    <= 1'b1;
+                    r_rready                <= 1'b0;
+                end
+            end
+        endcase
+    end
+end
+
+//----------- axi write response channel -----------//
+//Localparam defination
+reg [1:0] b_cur;
+
+localparam b_IDLE = 2'b00;
+localparam b_PED  = 2'b01;
+localparam b_AUTH = 2'b10;
+
+
+
+//Interface definaton
+reg         r_bready;
+reg         r_wdata_sram_data_ok;
+
+
+//Interface connection
+assign bready = r_bready;
+
+//State machine
+always @(posedge aclk) begin
+    if(~aresetn)begin
+        r_bready <= 1'b0;
+        b_cur    <= b_IDLE;
+    end else begin
+        case (b_cur)
+            b_IDLE:begin
+                if(data_write_req)
+                    b_cur <= b_PED;
+            end
+            b_PED:begin
+                r_bready <= 1'b1;
+                b_cur    <= b_AUTH;
+            end 
+            b_AUTH:begin
+                if(bvalid & bready)begin
+                    r_wdata_sram_data_ok <= 1'b1;
+                    b_cur                <= b_IDLE;
+                    r_bready             <= 1'b0;
+                end
+
+            end
+        endcase
     end
 end
 
