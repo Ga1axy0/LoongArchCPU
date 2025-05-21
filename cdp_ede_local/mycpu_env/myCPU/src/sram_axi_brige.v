@@ -150,6 +150,9 @@ assign data_write_req = data_sram_req & data_sram_wr;
 //------------- axi read address channel -------------//
 //Localparam defination
 reg [2:0]  ar_cur;
+wire       ar_stall;
+
+assign     ar_stall = (w_cur != w_IDLE) | (b_cur != b_IDLE); //Stall read req while writing process undone
 
 localparam ar_IDLE = 3'b000;
 localparam ar_REQD = 3'b001;
@@ -180,9 +183,9 @@ always @(posedge aclk) begin
     end else begin
         case (ar_cur)
             ar_IDLE:begin
-                if(data_read_req)
+                if(data_read_req & ~ar_stall)
                     ar_cur <= ar_REQD;
-                else if (inst_read_req)
+                else if (inst_read_req & ~ar_stall)
                     ar_cur <= ar_REQI;
             end
             ar_REQD:begin
@@ -316,9 +319,9 @@ always @(posedge aclk) begin
     end else begin
         case (r_cur)
             r_IDLE:begin
-                if(data_read_req)
+                if(ar_cur == ar_AUTD)
                     r_cur <= r_PEDD;
-                else if(inst_read_req)
+                else if(ar_cur == ar_AUTI)
                     r_cur <= r_PEDI;
             end
             r_PEDD:begin
@@ -375,7 +378,7 @@ always @(posedge aclk) begin
     end else begin
         case (b_cur)
             b_IDLE:begin
-                if(data_write_req)
+                if(w_cur == w_DAUT)
                     b_cur <= b_PED;
             end
             b_PED:begin
