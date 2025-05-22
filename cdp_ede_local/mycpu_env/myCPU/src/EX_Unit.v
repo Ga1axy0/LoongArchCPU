@@ -189,7 +189,7 @@ wire [1:0] data_sram_offset;
 
 assign data_sram_addr   = alu_result;
 assign data_sram_offset = data_sram_addr [1:0];
-assign data_sram_req    = ~excp_ale & EX_to_ME_Valid & (ID_Load_op | ID_Store_op) & ME_Allow_in;
+assign data_sram_req    = ~excp_ale & EX_Valid & (ID_Load_op | ID_Store_op) & ME_Allow_in;
 
 assign data_sram_wr     = |data_sram_wstrb;
 

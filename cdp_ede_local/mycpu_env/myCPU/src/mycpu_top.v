@@ -1,7 +1,7 @@
 `include "my_cpu.vh"
 module mycpu_top(
-    input  wire         clk,
-    input  wire         resetn,
+    input  wire         aclk,
+    input  wire         aresetn,
     //axi read address channel
     output wire [ 3:0]  arid,
     output wire [31:0]  araddr,
@@ -50,7 +50,7 @@ module mycpu_top(
     output wire [31:0] debug_wb_rf_wdata
 );
 reg         reset;
-always @(posedge clk) reset <= ~resetn;
+always @(posedge aclk) reset <= ~aresetn;
 
 wire         ID_Allow_in;
 wire         IF_Allow_in;
@@ -137,7 +137,7 @@ assign hw_int_in  = 8'd0;
 assign ipi_int_in = 1'd0;
 
 IF_Unit IF(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .ID_Allow_in       (ID_Allow_in       ),
     .br_bus            (br_bus            ),
@@ -159,7 +159,7 @@ IF_Unit IF(
 );
 
 ID_Unit ID(
-    .clk             (clk             ),
+    .clk             (aclk            ),
     .reset           (reset           ),
     .IF_to_ID_Valid  (IF_to_ID_Valid  ),
     .EX_Allow_in     (EX_Allow_in     ),
@@ -187,7 +187,7 @@ ID_Unit ID(
 );
 
 EX_Unit EX(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .ID_to_EX_Valid    (ID_to_EX_Valid    ),
     .ID_to_EX_Bus      (ID_to_EX_Bus      ),
@@ -221,7 +221,7 @@ EX_Unit EX(
 
 
 ME_Unit ME(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .EX_to_ME_Valid    (EX_to_ME_Valid    ),
     .WB_Allow_in       (WB_Allow_in       ),
@@ -242,7 +242,7 @@ ME_Unit ME(
 );
 
 WB_Unit WB(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .WB_Allow_in       (WB_Allow_in       ),
     .ME_to_WB_Valid    (ME_to_WB_Valid    ),
@@ -266,7 +266,7 @@ WB_Unit WB(
 );
 
 CSR_Unit CSR(
-    .clk         (clk         ),
+    .clk         (aclk         ),
     .reset       (reset       ),
     .core_id_in  (core_id_in  ),
     .hw_int_in   (hw_int_in   ),
@@ -309,8 +309,8 @@ sram_axi_brige u_sram_axi_brige(
     .data_sram_addr_ok (data_sram_addr_ok ),
     .data_sram_data_ok (data_sram_data_ok ),
     .data_sram_rdata   (data_sram_rdata   ),
-    .aclk              (clk              ),
-    .aresetn           (resetn           ),
+    .aclk              (aclk              ),
+    .aresetn           (aresetn           ),
     .arid              (arid              ),
     .araddr            (araddr            ),
     .arlen             (arlen             ),
