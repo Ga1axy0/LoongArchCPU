@@ -143,9 +143,15 @@ assign data_sram_data_ok = r_rdata_sram_data_ok  | r_wdata_sram_data_ok;
 wire inst_read_req;
 wire data_read_req;
 wire data_write_req;
-assign inst_read_req = inst_sram_req & ~inst_sram_wr;
-assign data_read_req = data_sram_req & ~data_sram_wr;
-assign data_write_req = data_sram_req & data_sram_wr;
+assign inst_read_req = inst_sram_req & ~inst_sram_wr & ~inst_sram_addr_ok;
+assign data_read_req = data_sram_req & ~data_sram_wr & ~data_sram_addr_ok;
+assign data_write_req = data_sram_req & data_sram_wr & ~data_sram_addr_ok;
+
+
+//read/write pending
+reg data_read_pending;
+reg inst_read_pending;
+reg data_write_pending;
 
 //------------- axi read address channel -------------//
 //Localparam defination
@@ -169,6 +175,7 @@ reg        r_rdata_sram_addr_ok;
 reg        r_rinst_sram_addr_ok;
 
 
+
 //Interface connection
 assign arvalid              = r_arvalid;
 assign araddr               = r_araddr;
@@ -178,11 +185,15 @@ assign arid                 = r_arid;
 //State machine
 always @(posedge aclk) begin
     if(~aresetn)begin
-        r_arvalid <= 1'b0;
-        ar_cur    <= ar_IDLE;
+        r_arvalid               <= 1'b0;
+        r_rdata_sram_addr_ok    <= 1'b0;
+        r_rinst_sram_addr_ok    <= 1'b0;
+        ar_cur                  <= ar_IDLE;
     end else begin
         case (ar_cur)
             ar_IDLE:begin
+                r_rinst_sram_addr_ok <= 1'b0;
+                r_rdata_sram_addr_ok    <= 1'b0;
                 if(data_read_req & ~ar_stall)
                     ar_cur <= ar_REQD;
                 else if (inst_read_req & ~ar_stall)
@@ -207,6 +218,7 @@ always @(posedge aclk) begin
                     r_rdata_sram_addr_ok <= 1'b1;
                     ar_cur               <= ar_IDLE;
                     r_arvalid            <= 1'b0;
+                    data_read_pending    <= 1'b1;
                 end
             end
             ar_AUTI:begin
@@ -214,6 +226,7 @@ always @(posedge aclk) begin
                     r_rinst_sram_addr_ok <= 1'b1;
                     ar_cur               <= ar_IDLE;
                     r_arvalid            <= 1'b0;
+                    inst_read_pending    <= 1'b1;
                 end
             end
 
@@ -252,11 +265,13 @@ assign wdata                = r_wdata;
 //State machine
 always @(posedge aclk) begin
     if(~aresetn)begin
-        r_awvalid <= 1'b0;
-        w_cur    <= w_IDLE;
+        r_awvalid               <= 1'b0;
+        r_wdata_sram_addr_ok    <= 1'b0;
+        w_cur                   <= w_IDLE;
     end else begin
         case (w_cur)
             w_IDLE:begin
+                r_wdata_sram_addr_ok <= 1'b0;
                 if(data_write_req)begin
                     w_cur <= w_REQ;
                 end
@@ -314,15 +329,23 @@ assign data_sram_rdata      = r_data_sram_rdata;
 //State machine
 always @(posedge aclk) begin
     if(~aresetn)begin
-        r_rready <= 1'b0;
-        r_cur    <= r_IDLE;
+        r_rready                <= 1'b0;
+        r_rdata_sram_data_ok    <= 1'b0;
+        r_rinst_sram_data_ok    <= 1'b0;
+        r_cur                   <= r_IDLE;
     end else begin
         case (r_cur)
             r_IDLE:begin
-                if(ar_cur == ar_AUTD)
-                    r_cur <= r_PEDD;
-                else if(ar_cur == ar_AUTI)
-                    r_cur <= r_PEDI;
+                r_rdata_sram_data_ok    <= 1'b0;
+                r_rinst_sram_data_ok    <= 1'b0;
+                if(data_read_pending)begin
+                    r_cur             <= r_PEDD;
+                    data_read_pending <= 1'b0;
+                end else if(inst_read_pending)begin
+                    r_cur             <= r_PEDI;
+                    inst_read_pending <= 1'b0;
+                end
+                    
             end
             r_PEDD:begin
                 r_rready <= 1'b1;
@@ -373,11 +396,13 @@ assign bready = r_bready;
 //State machine
 always @(posedge aclk) begin
     if(~aresetn)begin
-        r_bready <= 1'b0;
-        b_cur    <= b_IDLE;
+        r_bready             <= 1'b0;
+        b_cur                <= b_IDLE;
+        r_wdata_sram_data_ok <= 1'b0;
     end else begin
         case (b_cur)
             b_IDLE:begin
+                r_wdata_sram_data_ok <= 1'b0;
                 if(w_cur == w_DAUT)
                     b_cur <= b_PED;
             end
