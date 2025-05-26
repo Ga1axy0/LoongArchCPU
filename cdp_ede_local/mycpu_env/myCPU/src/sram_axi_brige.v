@@ -193,7 +193,7 @@ always @(posedge aclk) begin
         case (ar_cur)
             ar_IDLE:begin
                 r_rinst_sram_addr_ok <= 1'b0;
-                r_rdata_sram_addr_ok    <= 1'b0;
+                r_rdata_sram_addr_ok <= 1'b0;
                 if(data_read_req & ~ar_stall)
                     ar_cur <= ar_REQD;
                 else if (inst_read_req & ~ar_stall)
@@ -285,15 +285,15 @@ always @(posedge aclk) begin
             w_AAUT:begin
                 if(awready & awvalid)begin
                     r_wdata_sram_addr_ok <= 1'b1;
-                    r_wvalid             <= 1'b1;
                     w_cur                <= w_DAUT;
                     r_awvalid            <= 1'b0;
+                    r_wdata              <= data_sram_wdata;
+                    r_wstrb              <= data_sram_wstrb;
+                    r_wvalid             <= 1'b1;
                 end
             end
             w_DAUT:begin
                 if(wvalid & wready)begin
-                    r_wdata     <= data_sram_wdata;
-                    r_wstrb     <= data_sram_wstrb;
                     w_cur       <= w_IDLE;
                     r_wvalid    <= 1'b0;
                 end
