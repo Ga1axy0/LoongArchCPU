@@ -300,68 +300,86 @@ end
 
 //----------- axi read response channel -----------//
 //Localparam defination
-reg [2:0] r_cur;
+reg [1:0] ri_cur;
+reg [1:0] rd_cur;
 
-localparam r_IDLE = 3'b000;
-localparam r_AUTD = 3'b011;
-localparam r_AUTI = 3'b100;
-localparam r_DONI = 3'b101;
-localparam r_DOND = 3'b110;
+localparam ri_IDLE  = 2'b00;
+localparam ri_AUTH  = 2'b01;
+localparam ri_DONE  = 2'b10;
 
+localparam rd_IDLE  = 2'b00;
+localparam rd_AUTH  = 2'b01;
+localparam rd_DONE  = 2'b10;
 
 //Interface definaton
-reg         r_rready;
+reg         r_riready;
+reg         r_rdready;
 reg [31:0]  r_data_sram_rdata;
 reg [31:0]  r_inst_sram_rdata;
 wire        rdata_sram_data_ok;
 wire        rinst_sram_data_ok;
 
 //Interface connection
-assign rready               = r_rready;
+assign rready               = r_riready | r_rdready;
 assign inst_sram_rdata      = r_inst_sram_rdata;
 assign data_sram_rdata      = r_data_sram_rdata;
 
-assign rdata_sram_data_ok   = r_cur == r_DOND;
-assign rinst_sram_data_ok   = r_cur == r_DONI;
+assign rdata_sram_data_ok   = rd_cur == rd_DONE;
+assign rinst_sram_data_ok   = ri_cur == ri_DONE;
 
 
 //State machine
+//read inst
 always @(posedge aclk) begin
     if(~aresetn)begin
-        r_rready                <= 1'b0;
-        r_cur                   <= r_IDLE;
+        r_riready                <= 1'b0;
+        ri_cur                  <= ri_IDLE;
     end else begin
-        case (r_cur)
-            r_IDLE:begin
-                if(data_read_pending)begin
-                    r_cur             <= r_AUTD;
-                    data_read_pending <= 1'b0;
-                    r_rready <= 1'b1;
-                end else if(inst_read_pending)begin
-                    r_cur             <= r_AUTI;
+        case (ri_cur)
+            ri_IDLE:begin
+                if(inst_read_pending)begin
+                    ri_cur            <= ri_AUTH;
                     inst_read_pending <= 1'b0;
-                    r_rready <= 1'b1;
+                    r_riready          <= 1'b1;
                 end                  
             end
-            r_AUTD:begin
-                if(rready & rvalid & rid == 4'b0001)begin
-                    r_data_sram_rdata       <= rdata;
-                    r_cur                   <= r_DOND;
-                    r_rready                <= 1'b0;
-                end
-            end
-            r_AUTI:begin
+            ri_AUTH:begin
                 if(rready & rvalid & rid == 4'b0000)begin
                     r_inst_sram_rdata       <= rdata;
-                    r_cur                   <= r_DONI;
-                    r_rready                <= 1'b0;
+                    ri_cur                  <= ri_DONE;
+                    r_riready                <= 1'b0;
                 end
             end
-            r_DONI:begin
-                r_cur <= r_IDLE;
+            ri_DONE:begin
+                ri_cur <= ri_IDLE;
             end
-            r_DOND:begin
-                r_cur <= r_IDLE;
+        endcase
+    end
+end
+
+//read data
+always @(posedge aclk) begin
+    if(~aresetn)begin
+        r_rdready                <= 1'b0;
+        rd_cur                   <= rd_IDLE;
+    end else begin
+        case (rd_cur)
+            rd_IDLE:begin
+                if(data_read_pending)begin
+                    rd_cur            <= rd_AUTH;
+                    data_read_pending <= 1'b0;
+                    r_rdready         <= 1'b1;
+                end                  
+            end
+            rd_AUTH:begin
+                if(rready & rvalid & rid == 4'b0001)begin
+                    r_data_sram_rdata       <= rdata;
+                    rd_cur                  <= rd_DONE;
+                    r_rdready               <= 1'b0;
+                end
+            end
+            rd_DONE:begin
+                rd_cur <= rd_IDLE;
             end
         endcase
     end
