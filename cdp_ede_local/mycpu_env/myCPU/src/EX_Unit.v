@@ -72,8 +72,8 @@ wire                  flush_flag;
 
 assign flush_flag = excp_flush | ertn_flush;
 
-assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid : 
-                    (ID_Load_op|ID_Store_op)? data_sram_addr_ok : 1'b1;
+assign EX_ReadyGo = (alu_op[14]|alu_op[15]) ? divres_valid      : 
+                    data_sram_req           ? data_sram_addr_ok : 1'b1;
 assign EX_Allow_in = !EX_Valid || EX_ReadyGo && ME_Allow_in;
 assign EX_to_ME_Valid = EX_Valid && EX_ReadyGo;
 
