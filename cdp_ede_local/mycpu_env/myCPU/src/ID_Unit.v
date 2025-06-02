@@ -55,12 +55,17 @@ wire        sys_stall;
 
 assign      sys_stall = EX_to_ID_Sys_op | ME_to_ID_Sys_op;
 
-assign      EX_ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq)|| 
-                                            ((rd == EX_dest) & rd_eq) || 
-                                            ((rk == EX_dest) & rk_eq));
+assign      EX_ld_stall = EX_to_ID_Ld_op && (((rj == EX_dest) & rj_eq) || 
+                                             ((rd == EX_dest) & rd_eq) || 
+                                             ((rk == EX_dest) & rk_eq));
+
+assign      ME_ld_stall = ME_to_ID_ld_op && (((rj == ME_dest) & rj_eq) || 
+                                             ((rd == ME_dest) & rd_eq) || 
+                                             ((rk == ME_dest) & rk_eq)) & ~ME_Forward_valid;
 
 
-assign      ID_ReadyGo = ID_Valid & ~ld_stall & ~sys_stall & ~EX_ld_stall;
+
+assign      ID_ReadyGo = ID_Valid & ~ME_ld_stall & ~sys_stall & ~EX_ld_stall;
 assign      ID_Allow_in = !ID_Valid || ID_ReadyGo && EX_Allow_in;
 assign      ID_to_EX_Valid = ID_Valid && ID_ReadyGo;
 
@@ -78,11 +83,7 @@ always @(posedge clk) begin
         {IF_excp_en, IF_excp_num, pc, inst} <= IF_to_ID_Bus;
     end 
 
-    if(EX_ld_stall)begin
-        ld_stall <= 1'b1;
-    end else if(ME_Forward_valid)begin
-        ld_stall <= 1'b0;
-    end
+
     
 end
 
@@ -522,7 +523,7 @@ assign br_taken = (   (inst_beq  &&  rj_eq_rd)
                    || inst_b
                    || ((inst_bge | inst_bgeu) && rj_gt_rd)
                    || ((inst_blt | inst_bltu) && !rj_gt_rd)
-) && ID_Valid && ~ld_stall && ~EX_ld_stall;
+) && ID_Valid && ~ME_ld_stall && ~EX_ld_stall;
 
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bltu || inst_bge || inst_bgeu) ? (pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
