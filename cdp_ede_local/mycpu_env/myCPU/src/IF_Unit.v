@@ -114,11 +114,11 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if(reset | br_stall)begin
+    if(reset)begin
+        inst_req <= 1'b1;
+    end else if(inst_sram_addr_ok | br_stall)begin
         inst_req <= 1'b0;
-    end else if(inst_sram_addr_ok)begin
-        inst_req <= 1'b0;
-    end else if(IF_Allow_in)begin
+    end else if(inst_sram_data_ok)begin
         inst_req <= 1'b1;
     end
 end
