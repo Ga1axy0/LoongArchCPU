@@ -29,9 +29,11 @@ wire       ME_ReadyGO;
 reg        ME_Valid;
 wire       flush_flag;
 
+reg        r_ME_Forward_Valid;
+
 assign     flush_flag = excp_flush | ertn_flush;
 
-assign ME_Forward_Valid = ME_to_WB_Valid;
+assign ME_Forward_Valid = r_ME_Forward_Valid | ME_to_WB_Valid;
 
 assign ME_ReadyGO = (ID_load_op | ID_store_op) ? data_sram_data_ok | EX_excp_num[5] : 1'b1;
 assign ME_Allow_in = !ME_Valid || ME_ReadyGO && WB_Allow_in;
@@ -62,8 +64,15 @@ always @(posedge clk) begin
 
     if(reset | flush_flag)begin
         ME_Valid <= 1'b0;
+        r_ME_Forward_Valid <= 1'b0;
     end else if (ME_Allow_in) begin
         ME_Valid <= EX_to_ME_Valid;
+    end
+
+    if(ME_to_WB_Valid & |ME_dest & ID_load_op)begin
+        r_ME_Forward_Valid <= 1'b1;
+    end else if (EX_to_ME_Valid)begin
+        r_ME_Forward_Valid <= 1'b0;
     end
 
     if(EX_to_ME_Valid && ME_Allow_in)begin

@@ -1,27 +1,48 @@
 `include "my_cpu.vh"
 module mycpu_top(
-    input  wire         clk,
-    input  wire         resetn,
-    // inst sram axi-like interface
-    output wire         inst_sram_req,
-    output wire         inst_sram_wr,
-    output wire [1:0]   inst_sram_size,
-    output wire [31:0]  inst_sram_addr,
-    output wire [3:0]   inst_sram_wstrb,
-    output wire [31:0]  inst_sram_wdata,
-    input  wire         inst_sram_addr_ok,
-    input  wire         inst_sram_data_ok,
-    input  wire [31:0]  inst_sram_rdata,
-    // data sram axi-like interface
-    output wire         data_sram_req,
-    output wire         data_sram_wr,
-    output wire [1:0]   data_sram_size,
-    output wire [31:0]  data_sram_addr, 
-    output wire [3:0]   data_sram_wstrb,
-    output wire [31:0]  data_sram_wdata,
-    input  wire         data_sram_addr_ok,
-    input  wire         data_sram_data_ok,
-    input  wire [31:0]  data_sram_rdata,
+    input  wire         aclk,
+    input  wire         aresetn,
+    //axi read address channel
+    output wire [ 3:0]  arid,
+    output wire [31:0]  araddr,
+    output wire [ 7:0]  arlen,
+    output wire [ 2:0]  arsize,
+    output wire [ 1:0]  arburst,
+    output wire [ 1:0]  arlock,
+    output wire [ 3:0]  arcache,
+    output wire [ 2:0]  arprot,
+    output wire         arvalid,
+    input  wire         arready,
+    //axi read response channel
+    input  wire [ 3:0]  rid,
+    input  wire [31:0]  rdata,
+    input  wire [ 1:0]  rresp,
+    input  wire         rlast,
+    input  wire         rvalid,
+    output wire         rready,
+    //axi write address channel
+    output wire [ 3:0]  awid,
+    output wire [31:0]  awaddr,
+    output wire [ 7:0]  awlen,
+    output wire [ 2:0]  awsize,
+    output wire [ 1:0]  awburst,
+    output wire [ 1:0]  awlock,
+    output wire [ 3:0]  awcache,
+    output wire [ 2:0]  awprot,
+    output wire         awvalid,
+    input  wire         awready,
+    //axi write data channel
+    output wire [ 3:0]  wid,
+    output wire [31:0]  wdata,
+    output wire [ 3:0]  wstrb,
+    output wire         wlast,
+    output wire         wvalid,
+    input  wire         wready,
+    //axi write response channel
+    input  wire [ 3:0]  bid,
+    input  wire [ 1:0]  bresp,
+    input  wire         bvalid,
+    output wire         bready,
     // trace debug interface
     output wire [31:0] debug_wb_pc,
     output wire [ 3:0] debug_wb_rf_we,
@@ -29,7 +50,7 @@ module mycpu_top(
     output wire [31:0] debug_wb_rf_wdata
 );
 reg         reset;
-always @(posedge clk) reset <= ~resetn;
+always @(posedge aclk) reset <= ~aresetn;
 
 wire         ID_Allow_in;
 wire         IF_Allow_in;
@@ -48,7 +69,28 @@ wire         EX_to_ID_Ld_op;
 wire         ME_to_ID_ld_op;        
 wire         EX_to_ID_Sys_op;
 wire         ME_to_ID_Sys_op;
-wire         WB_to_ID_Sys_op;    
+wire         WB_to_ID_Sys_op;  
+
+// inst sram axi-like interface
+wire         inst_sram_req;
+wire         inst_sram_wr;
+wire [1:0]   inst_sram_size;
+wire [31:0]  inst_sram_addr;
+wire [3:0]   inst_sram_wstrb;
+wire [31:0]  inst_sram_wdata;
+wire         inst_sram_addr_ok;
+wire         inst_sram_data_ok;
+wire [31:0]  inst_sram_rdata;
+// data sram axi-like interface
+wire         data_sram_req;
+wire         data_sram_wr;
+wire [1:0]   data_sram_size;
+wire [31:0]  data_sram_addr; 
+wire [3:0]   data_sram_wstrb;
+wire [31:0]  data_sram_wdata;
+wire         data_sram_addr_ok;
+wire         data_sram_data_ok;
+wire [31:0]  data_sram_rdata;
 
 wire [`default_Dest_Size-1:0]   EX_dest;
 wire [`default_Dest_Size-1:0]   ME_dest;
@@ -95,7 +137,7 @@ assign hw_int_in  = 8'd0;
 assign ipi_int_in = 1'd0;
 
 IF_Unit IF(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .ID_Allow_in       (ID_Allow_in       ),
     .br_bus            (br_bus            ),
@@ -117,7 +159,7 @@ IF_Unit IF(
 );
 
 ID_Unit ID(
-    .clk             (clk             ),
+    .clk             (aclk            ),
     .reset           (reset           ),
     .IF_to_ID_Valid  (IF_to_ID_Valid  ),
     .EX_Allow_in     (EX_Allow_in     ),
@@ -145,7 +187,7 @@ ID_Unit ID(
 );
 
 EX_Unit EX(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .ID_to_EX_Valid    (ID_to_EX_Valid    ),
     .ID_to_EX_Bus      (ID_to_EX_Bus      ),
@@ -179,7 +221,7 @@ EX_Unit EX(
 
 
 ME_Unit ME(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .EX_to_ME_Valid    (EX_to_ME_Valid    ),
     .WB_Allow_in       (WB_Allow_in       ),
@@ -200,7 +242,7 @@ ME_Unit ME(
 );
 
 WB_Unit WB(
-    .clk               (clk               ),
+    .clk               (aclk              ),
     .reset             (reset             ),
     .WB_Allow_in       (WB_Allow_in       ),
     .ME_to_WB_Valid    (ME_to_WB_Valid    ),
@@ -224,7 +266,7 @@ WB_Unit WB(
 );
 
 CSR_Unit CSR(
-    .clk         (clk         ),
+    .clk         (aclk         ),
     .reset       (reset       ),
     .core_id_in  (core_id_in  ),
     .hw_int_in   (hw_int_in   ),
@@ -245,6 +287,66 @@ CSR_Unit CSR(
     .csr_wnum    (WB_csr_num  ),
     .timer_rdata (timer_rdata ),
     .timer_re    (timer_re    )
+);
+
+
+sram_axi_brige u_sram_axi_brige(
+    .inst_sram_req     (inst_sram_req     ),
+    .inst_sram_wr      (inst_sram_wr      ),
+    .inst_sram_size    (inst_sram_size    ),
+    .inst_sram_addr    (inst_sram_addr    ),
+    .inst_sram_wstrb   (inst_sram_wstrb   ),
+    .inst_sram_wdata   (inst_sram_wdata   ),
+    .inst_sram_addr_ok (inst_sram_addr_ok ),
+    .inst_sram_data_ok (inst_sram_data_ok ),
+    .inst_sram_rdata   (inst_sram_rdata   ),
+    .data_sram_req     (data_sram_req     ),
+    .data_sram_wr      (data_sram_wr      ),
+    .data_sram_size    (data_sram_size    ),
+    .data_sram_addr    (data_sram_addr    ),
+    .data_sram_wstrb   (data_sram_wstrb   ),
+    .data_sram_wdata   (data_sram_wdata   ),
+    .data_sram_addr_ok (data_sram_addr_ok ),
+    .data_sram_data_ok (data_sram_data_ok ),
+    .data_sram_rdata   (data_sram_rdata   ),
+    .aclk              (aclk              ),
+    .aresetn           (aresetn           ),
+    .arid              (arid              ),
+    .araddr            (araddr            ),
+    .arlen             (arlen             ),
+    .arsize            (arsize            ),
+    .arburst           (arburst           ),
+    .arlock            (arlock            ),
+    .arcache           (arcache           ),
+    .arprot            (arprot            ),
+    .arvalid           (arvalid           ),
+    .arready           (arready           ),
+    .rid               (rid               ),
+    .rdata             (rdata             ),
+    .rresp             (rresp             ),
+    .rlast             (rlast             ),
+    .rvalid            (rvalid            ),
+    .rready            (rready            ),
+    .awid              (awid              ),
+    .awaddr            (awaddr            ),
+    .awlen             (awlen             ),
+    .awsize            (awsize            ),
+    .awburst           (awburst           ),
+    .awlock            (awlock            ),
+    .awcache           (awcache           ),
+    .awprot            (awprot            ),
+    .awvalid           (awvalid           ),
+    .awready           (awready           ),
+    .wid               (wid               ),
+    .wdata             (wdata             ),
+    .wstrb             (wstrb             ),
+    .wlast             (wlast             ),
+    .wvalid            (wvalid            ),
+    .wready            (wready            ),
+    .bid               (bid               ),
+    .bresp             (bresp             ),
+    .bvalid            (bvalid            ),
+    .bready            (bready            )
 );
 
 

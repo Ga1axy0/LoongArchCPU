@@ -42,7 +42,7 @@ reg  [31:0] pc;
 wire        to_IF_Valid;
 wire        pre_IF_ReadyGo;
 
-assign pre_IF_ReadyGo = inst_sram_req & inst_sram_addr_ok; 
+assign pre_IF_ReadyGo = inst_sram_req & inst_sram_addr_ok & ~pre_IF_cancel; 
 assign to_IF_Valid    = ~reset & pre_IF_ReadyGo;
 
 
@@ -100,12 +100,25 @@ end
 
 reg inst_req;
 
+reg pre_IF_cancel;
+
 always @(posedge clk) begin
-    if(reset | br_stall)begin
+    if(reset)begin
+        pre_IF_cancel <= 1'b0;
+    end
+    else if(flush_flag)begin
+        pre_IF_cancel <= 1'b1;
+    end else if (inst_sram_addr_ok)begin
+        pre_IF_cancel <= 1'b0;
+    end
+end
+
+always @(posedge clk) begin
+    if(reset)begin
+        inst_req <= 1'b1;
+    end else if(inst_sram_addr_ok | br_stall)begin
         inst_req <= 1'b0;
-    end else if(inst_sram_addr_ok)begin
-        inst_req <= 1'b0;
-    end else if(IF_Allow_in)begin
+    end else if(inst_sram_data_ok)begin
         inst_req <= 1'b1;
     end
 end
